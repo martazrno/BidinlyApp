@@ -15,6 +15,8 @@ namespace Shared.DTOs.Bids
 
         [Required]
         public DateTime ExpiryDate { get; set; }
+        
+        public string? Deal { get; set; }
 
         // bid_id and status are omitted as they are server-generated/managed.
     }

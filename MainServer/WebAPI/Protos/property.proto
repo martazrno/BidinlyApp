@@ -19,7 +19,7 @@ message CreatePropertyRequest {
   double startingPrice = 4;
   int32 bedrooms = 5;
   int32 bathrooms = 6;
-  int32 sizeInSquareFeet = 7;
+  double sizeInSquareMeters = 7;
   optional string description = 8;
   string status = 9;
   string creationStatus = 10;
@@ -44,7 +44,7 @@ message UpdatePropertyRequest {
   optional double startingPrice = 4;
   optional int32 bedrooms = 5;
   optional int32 bathrooms = 6;
-  optional int32 sizeInSquareFeet = 7;
+  optional double sizeInSquareMeters = 7;
   optional string description = 8;
   optional string status = 9;
   optional string creationStatus = 10;
@@ -63,7 +63,7 @@ message PropertyResponse {
   double startingPrice = 5;
   int32 bedrooms = 6;
   int32 bathrooms = 7;
-  int32 sizeInSquareFeet = 8;
+  double sizeInSquareMeters = 8;
   string description = 9;
   string status = 10;
   string creationStatus = 11;

@@ -27,6 +27,23 @@ public class User {
     @NotNull
     private Integer roleId;
 
+    @Column(name = "\"IsActive\"", nullable = false)
+    @NotNull
+    private Boolean isActive = true;
+
+    @Column(name = "\"Email\"", length = 100, nullable = true)
+    @Size(max = 100)
+    private String email;
+
+    @Column(name = "\"PublicKey\"", columnDefinition = "TEXT")
+    private String publicKey;
+
+    @Column(name = "\"PrivateKey\"", columnDefinition = "TEXT")
+    private String privateKey;
+
+    @Column(name = "\"Certificate\"", columnDefinition = "TEXT")
+    private String certificate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "\"RoleId\"", insertable = false, updatable = false,
             foreignKey = @ForeignKey(name = "fk_role"))
@@ -40,6 +57,15 @@ public class User {
         this.username = username;
         this.password = password;
         this.roleId = roleId;
+        this.isActive = true;
+    }
+
+    public User(String username, String password, Integer roleId, String email) {
+        this.username = username;
+        this.password = password;
+        this.roleId = roleId;
+        this.isActive = true;
+        this.email = email;
     }
 
     public Integer getId() {
@@ -81,4 +107,29 @@ public class User {
     public void setRole(Role role) {
         this.role = role;
     }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPublicKey() { return publicKey; }
+    public void setPublicKey(String publicKey) { this.publicKey = publicKey; }
+
+    public String getPrivateKey() { return privateKey; }
+    public void setPrivateKey(String privateKey) { this.privateKey = privateKey; }
+
+    public String getCertificate() { return certificate; }
+    public void setCertificate(String certificate) { this.certificate = certificate; }
 }

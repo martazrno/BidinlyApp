@@ -1,6 +1,4 @@
-using System.Net.Http.Json;
-using shared.DTOs.Properties;
-
+using Shared.DTOs.Properties;
 namespace BlazorApp.Services;
 
 public class HttpPropertyService
@@ -29,6 +27,12 @@ public class HttpPropertyService
         return await client.GetFromJsonAsync<PropertyDto>($"properties/{id}");
     }
 
+    public async Task<List<PropertyDto>> GetByCreationStatusAsync(string creationStatus)
+    {
+        var properties = await client.GetFromJsonAsync<List<PropertyDto>>($"properties?creationStatus={Uri.EscapeDataString(creationStatus)}");
+        return properties ?? new List<PropertyDto>();
+    }
+
     public async Task<PropertyDto> CreateAsync(CreatePropertyDto dto)
     {
         var response = await client.PostAsJsonAsync("properties", dto);
@@ -40,6 +44,32 @@ public class HttpPropertyService
 
         return await response.Content.ReadFromJsonAsync<PropertyDto>()
                ?? throw new Exception("Failed to deserialize property");
+    }
+
+    public async Task<PropertyDto> UpdateAsync(UpdatePropertyDto dto)
+    {
+        var response = await client.PutAsJsonAsync($"properties/{dto.Id}", dto);
+        if (!response.IsSuccessStatusCode)
+        {
+            string err = await response.Content.ReadAsStringAsync();
+            throw new Exception(string.IsNullOrWhiteSpace(err) ? "Failed to update property" : err);
+        }
+
+        return await response.Content.ReadFromJsonAsync<PropertyDto>()
+               ?? throw new Exception("Failed to deserialize property");
+    }
+    
+    public async Task DeleteAsync(int id)
+    {
+        var response = await client.DeleteAsync($"properties/{id}");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            string err = await response.Content.ReadAsStringAsync();
+            throw new Exception(string.IsNullOrWhiteSpace(err)
+                ? "Failed to delete property"
+                : err);
+        }
     }
 }
 

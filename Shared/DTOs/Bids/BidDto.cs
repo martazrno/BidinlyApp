@@ -1,4 +1,4 @@
-namespace shared.DTOs.Bids
+namespace Shared.DTOs.Bids
 {
     public class BidDto
     {
@@ -15,6 +15,10 @@ namespace shared.DTOs.Bids
         public DateTime ExpiryDate { get; set; } 
 
         public string? Status { get; set; } // e.g., "Pending", "Accepted", "Rejected", "Expired"
+        
+        public string? Deal { get; set; }
+        
+        public bool SignatureValid { get; set; }
     }
 }
 

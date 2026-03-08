@@ -1,4 +1,4 @@
-namespace shared.DTOs.Sales
+namespace Shared.DTOs.Sales
 {
     public class SaleDto
     {

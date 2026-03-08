@@ -1,0 +1,416 @@
+@page "/agent/property/{PropertyId:int}"
+@layout NoLayout
+@using Shared.DTOs.Properties
+@attribute [Authorize]
+@inject HttpPropertyService PropertyService
+@inject HttpBidService BidService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+@rendermode InteractiveServer
+@inject IJSRuntime JS
+
+@namespace BlazorApp.Components.Pages.Agent
+
+<PageTitle>Agent Property Details - Bidinly</PageTitle>
+
+@if (loading)
+{
+    <div class="property-detail-loading">
+        <p>Loading property details...</p>
+    </div>
+}
+else if (property == null)
+{
+    <div class="property-detail-error">
+        <h2>Property Not Found</h2>
+        <p>The property you're looking for doesn't exist or has been removed.</p>
+        <button class="back-button" @onclick="async () => await GoBack()">← Back</button>
+    </div>
+}
+else
+{
+    <div class="property-detail-section">
+    <div class="property-detail-container">
+        
+        <button class="back-button" @onclick="async () => await GoBack()">← Back</button>
+        
+        <div class="property-detail-header">
+            <div class="header-left">
+                <h1 class="property-detail-title">@property.Title</h1>
+                @if (property.CreationStatus == "Pending")
+                {
+                    <span class="property-detail-status pending">Waiting for approval</span>
+                }
+                else if (property.CreationStatus == "Rejected")
+                {
+                    <span class="property-detail-status rejected">Rejected</span>
+                }
+                else
+                {
+                    @if (property.Status == "Sold")
+                    {
+                        <span class="property-detail-status sold">Sold</span>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(property.Status))
+                    {
+                        <span class="property-detail-status normal">@property.Status</span>
+                    }
+                }
+            </div>
+            
+            <div class="agent-action-buttons">
+                <button class="agent-btn edit-btn" @onclick="EditProperty">Edit</button>
+                <button class="agent-btn delete-btn" @onclick="DeleteProperty">Delete</button>
+            </div>
+        </div>
+        
+        
+
+<div class="property-detail-top-grid">
+    
+    <div>
+        <div class="property-detail-images">
+
+            @if (imageUrls.Count == 0)
+            {
+                <div class="property-detail-image-placeholder">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20 5 20 6 21H9M19 10L21 12M19 10V20C19 20 18 21 18 21H15M9 21H15"
+                              stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            }
+            else
+            {
+                <div class="image-carousel">
+
+                    @if (imageUrls.Count > 1)
+                    {
+                        <button class="carousel-btn left" @onclick="PrevImage">‹</button>
+                    }
+
+                    <img src="@imageUrls[currentImageIndex]"
+                         class="carousel-image clickable-image"
+                         @onclick="() => OpenImage(imageUrls[currentImageIndex])" />
+
+                    @if (imageUrls.Count > 1)
+                    {
+                        <button class="carousel-btn right" @onclick="NextImage">›</button>
+                    }
+
+                </div>
+            }
+
+        </div>
+        
+        @if (!string.IsNullOrWhiteSpace(property.Address))
+        {
+            <div class="property-detail-address under-image-address">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 10C21 17 12 23 12 23C12 23 3 17 3 10C3 7.6 4 5.3 6 3.6C7.3 2 9.6 1 12 1C14.4 1 16.7 2 18.4 3.6C20 5.3 21 7.6 21 10Z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 13C13.7 13 15 11.7 15 10C15 8.3 13.7 7 12 7C10.3 7 9 8.3 9 10C9 11.7 10.3 13 12 13Z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                <span>@property.Address</span>
+            </div>
+        }
+    </div>
+    
+    <div class="property-detail-sidebar">
+        <div class="property-detail-price">
+            <h3>Starting Price</h3>
+            <p class="price-amount">@property.StartingPrice.ToString("N0") Kr</p>
+            @if (property.CreationStatus == "Approved" 
+                 && property.Status != "Sold")
+            {
+                <button class="bid-button" @onclick="GoToBids">View Bids</button>
+            }
+        </div>
+
+        <div class="property-detail-specs">
+            <h3>Property Details</h3>
+
+            <div class="spec-item">
+                <span class="spec-label">Bedrooms:</span>
+                <span class="spec-value">@property.Bedrooms</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">Bathrooms:</span>
+                <span class="spec-value">@property.Bathrooms</span>
+            </div>
+            <div class="spec-item">
+                <span class="spec-label">Size:</span>
+                <span class="spec-value">@property.SizeInSquareMeters.ToString("F0") sq m</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(property.AgentName))
+            {
+                <div class="spec-item">
+                    <span class="spec-label">Agent:</span>
+                    <span class="spec-value">@property.AgentName</span>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@if (!string.IsNullOrWhiteSpace(property.Description))
+{
+    <div class="property-detail-description description-bottom">
+        <h2>Description</h2>
+        <p>@property.Description</p>
+    </div>
+}
+        
+
+    </div>
+</div>
+}
+
+@if (showDeleteModal)
+{
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <h2>Delete Property?</h2>
+            <p>This action cannot be undone.</p>
+
+            <div class="modal-buttons">
+                <button class="modal-btn cancel" @onclick="() => showDeleteModal = false">
+                    Cancel
+                </button>
+
+                <button class="modal-btn delete" @onclick="ConfirmDelete">
+                    Delete Property
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showEditModal)
+{
+    <div class="modal-overlay" @onclick="() => showEditModal = false">
+        <div class="modal-content" @onclick:stopPropagation="true">
+
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Property</h2>
+                <button class="modal-close-button" @onclick="() => showEditModal = false" type="button">
+                    ✕
+                </button>
+            </div>
+
+            <div class="modal-body">
+
+                <EditForm Model="@editDto" OnValidSubmit="HandleEditSubmit">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="form-group">
+                        <label class="form-label">Title</label>
+                        <InputText class="form-input" @bind-Value="editDto.Title" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-input form-textarea"
+                                  @bind="editDto.Description"
+                                  rows="5"></textarea>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(editError))
+                    {
+                        <div class="form-error">@editError</div>
+                    }
+
+                    <div class="modal-footer">
+                        <button type="button" class="form-button form-button-cancel"
+                                @onclick="() => showEditModal = false">
+                            Cancel
+                        </button>
+
+                        <button type="submit" class="form-button form-button-submit" disabled="@isEditing">
+                            @(isEditing ? "Saving..." : "Save Changes")
+                        </button>
+                    </div>
+                </EditForm>
+
+            </div>
+        </div>
+    </div>
+}
+
+@if (showImageModal && selectedImageUrl != null)
+{
+    <div class="image-modal-overlay" @onclick="CloseImage">
+        <div class="image-modal-content" @onclick:stopPropagation="true">
+            <img src="@selectedImageUrl" class="image-modal-full" />
+            <button class="image-modal-close" @onclick="CloseImage">×</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int PropertyId { get; set; }
+    private PropertyDto? property;
+    private bool loading = true;
+    private bool showBidModal = false;
+    private decimal bidAmount;
+    private DateTime bidExpiryDate = DateTime.Now.AddDays(7);
+    private bool isSubmittingBid = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool IsNotAvailable => property?.Status == "Not Available";
+    private string? bidMessage;
+    private bool showDeleteModal = false;
+    private bool showEditModal = false;
+    private bool isEditing = false;
+    private string? editError = null;
+    private UpdatePropertyDto editDto = new();
+    private List<string> imageUrls = new();
+    private bool showImageModal = false;
+    private string? selectedImageUrl = null;
+    
+    
+    
+    private void GoToBids()
+    {
+        Navigation.NavigateTo($"/property/{PropertyId}/bids");
+    }
+    
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadProperty();
+        StateHasChanged();
+    }
+    
+    private async Task LoadProperty()
+    {
+        try
+        {
+            loading = true;
+            property = await PropertyService.GetByIdAsync(PropertyId);
+            imageUrls = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(property?.ImageUrl))
+            {
+                try
+                {
+                    imageUrls = System.Text.Json.JsonSerializer.Deserialize<List<string>>(property.ImageUrl)
+                                ?? new List<string>();
+                }
+                catch
+                {
+                    imageUrls.Add(property.ImageUrl);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading property: {ex.Message}");
+            property = null;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+    
+    private Task GoBack()
+    {
+        Navigation.NavigateTo("/my-properties");
+        return Task.CompletedTask;
+    }
+    
+    private void EditProperty()
+    {
+        if (property == null) return;
+
+        editDto = new UpdatePropertyDto
+        {
+            Id = property.Id,
+            AgentId = property.AgentId!.Value,
+            Title = property.Title,
+            Address = property.Address,
+            StartingPrice = property.StartingPrice,
+            Bedrooms = property.Bedrooms,
+            Bathrooms = property.Bathrooms,
+            SizeInSquareMeters = property.SizeInSquareMeters,
+            Description = property.Description
+        };
+
+        editError = null;
+        showEditModal = true;
+    }
+    
+    private async Task HandleEditSubmit()
+    {
+        isEditing = true;
+        editError = null;
+
+        try
+        {
+            await PropertyService.UpdateAsync(editDto);
+
+            showEditModal = false;
+
+            await LoadProperty();
+        }
+        catch (Exception ex)
+        {
+            editError = ex.Message;
+            Console.WriteLine($"Edit error: {ex}");
+        }
+        finally
+        {
+            isEditing = false;
+        }
+    }
+
+    private void DeleteProperty()
+    {
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            await PropertyService.DeleteAsync(PropertyId);
+
+            showDeleteModal = false;
+
+            Navigation.NavigateTo("/my-properties", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Delete error: {ex.Message}");
+        }
+    }
+
+    private void OpenImage(string url)
+    {
+        selectedImageUrl = url;
+        showImageModal = true;
+    }
+
+    private void CloseImage()
+    {
+        showImageModal = false;
+        selectedImageUrl = null;
+    }
+    
+    private int currentImageIndex = 0;
+
+    private void NextImage()
+    {
+        if (imageUrls.Count == 0) return;
+        currentImageIndex = (currentImageIndex + 1) % imageUrls.Count;
+    }
+
+    private void PrevImage()
+    {
+        if (imageUrls.Count == 0) return;
+        currentImageIndex = (currentImageIndex - 1 + imageUrls.Count) % imageUrls.Count;
+    }
+}
+}

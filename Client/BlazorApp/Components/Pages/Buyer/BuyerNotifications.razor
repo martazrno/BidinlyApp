@@ -1,0 +1,139 @@
+@page "/buyer-notifications"
+@layout NoLayout
+@inject NavigationManager Navigation
+@using Shared.DTOs.Notifications
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Notifications - Bidinly</PageTitle>
+
+<div class="notifications-page">
+
+    <div class="back-button-wrapper">
+        <button class="back-button" @onclick="GoBack">
+            ← Back
+        </button>
+    </div>
+
+    <div class="notifications-content">
+        <div class="page-header">
+            <h1 class="page-title">Notifications</h1>
+        </div>
+
+        <div class="notifications-section">
+
+            @if (isLoading)
+            {
+                <div class="loading">Loading notifications...</div>
+            }
+            else if (!notifications.Any())
+            {
+                <div class="no-results">No notifications yet.</div>
+            }
+            else
+            {
+                <div class="notifications-container">
+                    @foreach (var n in notifications)
+                    {
+                        var status = n.Status?.Trim();
+
+                        var (title, type) = status switch
+                        {
+                            var s when string.Equals(s, "Accepted", StringComparison.OrdinalIgnoreCase)
+                                => ("Bid Accepted", "success"),
+                            var s when string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase)
+                                => ("Bid Rejected", "error"),
+                            _ => ("Notification", "info")
+                        };
+
+                        <div class="notification-card @GetTypeClass(type)">
+                            <div class="notification-header">
+                                <h3 class="notification-title">@title</h3>
+
+                                <div class="notif-header-right">
+                                    <span class="notification-date">
+                                        @n.CreatedAt.ToString("g")
+                                    </span>
+
+                                    <button class="notif-read-icon"
+                                            title="Mark as read"
+                                            @onclick="() => MarkAsRead(n.Id)">
+                                        🗑️
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="notification-message">
+                                <div class="notif-message-text">
+                                    @n.Message
+                                </div>
+
+                                @if (n.Status == "Accepted")
+                                {
+                                    <button class="notif-action-button"
+                                            @onclick="() => GoToPayment(n.PropertyId, n.BidId)">
+                                        Go to Payment
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="notif-action-button"
+                                            @onclick="() => ViewProperty(n.PropertyId)">
+                                        View Property
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<NotificationDto> notifications = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var buyerIdClaim = user.FindFirst("Id")?.Value;
+        if (buyerIdClaim == null)
+            return;
+
+        var buyerId = int.Parse(buyerIdClaim);
+
+        notifications = await Http.GetFromJsonAsync<List<NotificationDto>>(
+            $"/notifications?userId={buyerId}&isRead=false"
+        ) ?? new();
+
+        isLoading = false;
+    }
+
+    private void GoBack() =>
+        Navigation.NavigateTo("/buyer-dashboard");
+
+    private void GoToPayment(int propertyId, int bidId) =>
+        Navigation.NavigateTo($"/payment/{propertyId}/{bidId}");
+
+    private void ViewProperty(int propertyId) =>
+        Navigation.NavigateTo($"/property/{propertyId}");
+
+    private string GetTypeClass(string type) =>
+        type switch
+        {
+            "success" => "notif-success",
+            "error" => "notif-error",
+            _ => "notif-info"
+        };
+    
+    private async Task MarkAsRead(int notificationId)
+    {
+        await Http.PutAsync($"/notifications/{notificationId}/read", null);
+        notifications.RemoveAll(n => n.Id == notificationId);
+    }
+}

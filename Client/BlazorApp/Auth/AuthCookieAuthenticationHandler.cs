@@ -3,9 +3,8 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using shared.DTOs.Users;
+using Shared.DTOs.Users;
 
 namespace BlazorApp.Auth;
 

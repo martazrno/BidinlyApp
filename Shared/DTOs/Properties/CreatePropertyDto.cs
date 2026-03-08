@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace shared.DTOs.Properties
+namespace Shared.DTOs.Properties
 {
    
     public class CreatePropertyDto
     {
+
         [Required] 
         public int AgentId { get; set; } //links to the agent creating the property
 
@@ -25,7 +26,7 @@ namespace shared.DTOs.Properties
         public int Bathrooms { get; set; }
 
         [Required]
-        public double SizeInSquareFeet { get; set; }
+        public double SizeInSquareMeters { get; set; }
 
         public string? Description { get; set; }
 

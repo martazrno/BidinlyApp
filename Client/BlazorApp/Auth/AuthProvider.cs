@@ -3,8 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using Shared.DTOs.Auth;
-using shared.DTOs.Users;
-using Shared.DTOs.Roles;
+using Shared.DTOs.Users;
 
 namespace BlazorApp.Auth;
 

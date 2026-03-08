@@ -122,3 +122,13 @@
     cursor: not-allowed;
 }
 
+.login-form-input.invalid {
+    border-color: #c33;
+}
+
+.validation-error {
+    color: #c33;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+

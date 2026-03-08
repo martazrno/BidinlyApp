@@ -1,8 +1,10 @@
 ﻿@using BlazorApp.Auth
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Shared.DTOs.Notifications
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
+@inject HttpClient Http
 @implements IDisposable
 
 <header class="navbar-header">
@@ -16,23 +18,37 @@
                 <Authorized Context="authContext">
                     @{
                         var roleName = authContext.User.FindFirst("RoleName")?.Value;
-                        var dashboardRoute = string.Equals(roleName, "Buyer", StringComparison.OrdinalIgnoreCase) 
-                            ? "buyer-dashboard" 
-                            : string.Equals(roleName, "Agent", StringComparison.OrdinalIgnoreCase) 
-                                ? "agent-dashboard" 
-                                : string.Equals(roleName, "Admin", StringComparison.OrdinalIgnoreCase)
-                                    ? "admin-dashboard"
-                                    : "buyer-dashboard";
+
+                        var isBuyer = string.Equals(roleName, "Buyer", StringComparison.OrdinalIgnoreCase);
                         var isAgent = string.Equals(roleName, "Agent", StringComparison.OrdinalIgnoreCase);
                         var isAdmin = string.Equals(roleName, "Admin", StringComparison.OrdinalIgnoreCase);
+
+                        var dashboardRoute =
+                            isBuyer ? "buyer-dashboard" :
+                            isAgent ? "agent-dashboard" :
+                            isAdmin ? "admin-dashboard" :
+                            "buyer-dashboard";
+
+                        var salesRoute =
+                            isAgent ? "agent/sales" :
+                            isBuyer ? "buyer/sales" :
+                            "sales";
                     }
                     @if (isAdmin)
                     {
+                        <button class="nav-link nav-button"
+                                @onclick='() => Navigation.NavigateTo($"/{dashboardRoute}", true)'>
+                            Home
+                        </button>
                         <NavLink class="nav-link" href="requests">Requests</NavLink>
+                        <NavLink class="nav-link" href="users">Users</NavLink>
                     }
                     else
                     {
-                        <NavLink class="nav-link" href="@dashboardRoute" Match="NavLinkMatch.All">Home</NavLink>
+                        <button class="nav-link nav-button"
+                                @onclick='() => Navigation.NavigateTo($"/{dashboardRoute}", true)'>
+                            Home
+                        </button>
                         @if (isAgent)
                         {
                             <NavLink class="nav-link" href="my-properties">Properties</NavLink>
@@ -41,7 +57,7 @@
                         {
                             <NavLink class="nav-link" href="bids">Bids</NavLink>
                         }
-                        <NavLink class="nav-link" href="sales">Sales</NavLink>
+                        <NavLink class="nav-link" href="@salesRoute">Sales</NavLink>
                     }
                     <div class="user-dropdown @(isDropdownOpen ? "show" : "")">
                         <button class="user-dropdown-toggle nav-link nav-button" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
@@ -54,6 +70,18 @@
                         }
                         <div class="user-dropdown-menu @(isDropdownOpen ? "show" : "")" @onclick:stopPropagation="true">
                             <div class="dropdown-header">@authContext.User.Identity?.Name</div>
+                            @if (isBuyer)
+                            {
+                                <button class="dropdown-item" @onclick='() => Navigation.NavigateTo("/buyer-notifications")'>
+                                    Notifications (@NotificationCount)
+                                </button>
+                            }
+                            else if (isAgent)
+                            {
+                                <button class="dropdown-item" @onclick='() => Navigation.NavigateTo("/agent-notifications")'>
+                                    Notifications (@NotificationCount)
+                                </button>
+                            }
                             <button class="dropdown-item" @onclick="HandleLogout">Logout</button>
                         </div>
                     </div>
@@ -70,15 +98,21 @@
 
 @code {
     private bool isDropdownOpen = false;
+    private int NotificationCount = 0;
 
-    protected override void OnInitialized()
+    protected override async void OnInitialized()
     {
         Navigation.LocationChanged += OnLocationChanged;
+        await LoadNotificationCountAsync();
     }
 
-    private void ToggleDropdown()
+    private async void ToggleDropdown()
     {
         isDropdownOpen = !isDropdownOpen;
+        if (isDropdownOpen)
+        {
+            await LoadNotificationCountAsync();
+        }
         StateHasChanged();
     }
 
@@ -105,6 +139,47 @@
     public void Dispose()
     {
         Navigation.LocationChanged -= OnLocationChanged;
+    }
+    
+    private int? GetUserId(ClaimsPrincipal user)
+    {
+        var idClaim = user.FindFirst("Id")?.Value;
+        return int.TryParse(idClaim, out var id) ? id : null;
+    }
+    
+    private async Task LoadNotificationCountAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NotificationCount = 0;
+            return;
+        }
+
+        var roleName = user.FindFirst("RoleName")?.Value;
+        
+        if (!string.Equals(roleName, "Buyer", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(roleName, "Agent", StringComparison.OrdinalIgnoreCase))
+        {
+            NotificationCount = 0;
+            return;
+        }
+
+        var userId = GetUserId(user);
+        if (userId == null)
+        {
+            NotificationCount = 0;
+            return;
+        }
+        
+        var url = $"/notifications?userId={userId}&isRead=false";
+
+        var notifications = await Http.GetFromJsonAsync<List<NotificationDto>>(url);
+        NotificationCount = notifications?.Count ?? 0;
+
+        StateHasChanged();
     }
 }
 

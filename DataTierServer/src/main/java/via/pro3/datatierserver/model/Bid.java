@@ -37,6 +37,9 @@ public class Bid {
     @NotNull
     private BigDecimal amount;
 
+    @Column(name = "\"Deal\"")
+    private String deal;
+
     @Column(name = "\"ExpiryDate\"", nullable = false)
     @NotNull
     private Instant expiryDate;
@@ -45,15 +48,19 @@ public class Bid {
     @Size(max = 50)
     private String status = "Pending";
 
+    @Column(name = "\"Signature\"", columnDefinition = "TEXT")
+    private String signature;
+
     public Bid() {
     }
 
-    public Bid(Integer buyerId, Integer propertyId, BigDecimal amount, Instant expiryDate) {
+    public Bid(Integer buyerId, Integer propertyId, BigDecimal amount, Instant expiryDate, String deal) {
         this.buyerId = buyerId;
         this.propertyId = propertyId;
         this.amount = amount;
         this.expiryDate = expiryDate;
         this.status = "Pending";
+        this.deal = deal;
     }
 
     public Integer getId() {
@@ -104,6 +111,10 @@ public class Bid {
         this.amount = amount;
     }
 
+    public String getDeal() {return deal;}
+
+    public void setDeal(String deal) {this.deal = deal;}
+
     public Instant getExpiryDate() {
         return expiryDate;
     }
@@ -119,4 +130,7 @@ public class Bid {
     public void setStatus(String status) {
         this.status = status;
     }
+
+    public String getSignature() { return signature; }
+    public void setSignature(String signature) { this.signature = signature; }
 }

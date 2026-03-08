@@ -43,6 +43,14 @@ service AuthService{
   rpc AuthenticateUser (LoginRequest) returns (LoginResponse);
 }
 
+service NotificationService {
+  // Notification operations
+  rpc CreateNotification (CreateNotificationRequest) returns (NotificationResponse);
+  rpc GetNotifications (GetNotificationsRequest) returns (GetNotificationsResponse);
+  rpc GetNotification (GetNotificationRequest) returns (NotificationResponse);
+  rpc MarkNotificationAsRead (MarkNotificationAsReadRequest) returns (NotificationResponse);
+}
+
 
 // Bid messages
 message CreateBidRequest {
@@ -50,6 +58,7 @@ message CreateBidRequest {
   int32 propertyId = 2;
   double amount = 3;
   int64 expiryDateSeconds = 4; // Unix timestamp
+  optional string deal =5;
 }
 
 message GetBidRequest {
@@ -67,6 +76,7 @@ message UpdateBidRequest {
   optional double amount = 2;
   optional int64 expiryDateSeconds = 3;
   optional string status = 4;
+  optional string deal =5;
 }
 
 message DeleteBidRequest {
@@ -80,6 +90,9 @@ message BidResponse {
   double amount = 4;
   int64 expiryDateSeconds = 5;
   string status = 6;
+  optional string deal = 7;
+  optional string signature = 8;
+  bool signatureValid = 9;
 }
 
 message GetBidsResponse {
@@ -100,6 +113,7 @@ message CreateUserRequest {
   string username = 1;
   string password = 2;
   int32 roleId = 3;
+  optional string email = 4;
 }
 
 message GetUserRequest {
@@ -115,6 +129,8 @@ message UpdateUserRequest {
   optional string username = 2;
   optional string password = 3;
   optional int32 roleId = 4;
+  optional bool isActive = 5;
+  optional string email = 6;
 }
 
 message DeleteUserRequest {
@@ -125,6 +141,9 @@ message UserResponse {
   int32 id = 1;
   string username = 2;
   int32 roleId = 3;
+  bool isActive = 4;
+  optional string email = 5;
+  string publicKey = 6;
 }
 
 message GetUsersResponse {
@@ -206,4 +225,45 @@ message LoginResponse {
   int32 id = 1;
   string username = 2;
   int32 roleId = 3;
+  optional string email = 4;
+  string publicKey = 5;
+}
+
+// Notification messages
+message CreateNotificationRequest {
+  int32 bidId = 1;
+  optional int32 userId = 2;
+  int32 propertyId = 3;
+  optional string status = 4;
+  string message = 5;
+  optional string propertyTitle = 6;
+}
+
+message GetNotificationsRequest {
+  optional int32 userId = 1;
+  optional bool isRead = 2;
+}
+
+message GetNotificationRequest {
+  int32 id = 1;
+}
+
+message MarkNotificationAsReadRequest {
+  int32 id = 1;
+}
+
+message NotificationResponse {
+  int32 id = 1;
+  int32 bidId = 2;
+  optional int32 userId = 3;
+  int32 propertyId = 4;
+  optional string status = 5;
+  string message = 6;
+  optional string propertyTitle = 7;
+  int64 createdAtSeconds = 8; // Unix timestamp
+  bool isRead = 9;
+}
+
+message GetNotificationsResponse {
+  repeated NotificationResponse notifications = 1;
 }

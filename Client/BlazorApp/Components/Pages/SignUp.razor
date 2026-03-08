@@ -2,7 +2,7 @@
 @namespace BlazorApp.Components.Pages
 @rendermode InteractiveServer
 @using System.ComponentModel.DataAnnotations
-@using shared.DTOs.Users
+@using Shared.DTOs.Users
 
 @inject NavigationManager Navigation
 @inject HttpUserService UserService
@@ -40,6 +40,15 @@
                            class="login-form-input"
                            placeholder="Enter your password"
                            @bind-Value="signUpModel.Password" />
+            </div>
+
+            <div class="login-form-group">
+                <label for="email">Email</label>
+                <InputText id="email"
+                           type="email"
+                           class="login-form-input"
+                           placeholder="Enter your email (optional)"
+                           @bind-Value="signUpModel.Email" />
             </div>
 
             <div class="login-form-group role-toggle">
@@ -87,7 +96,8 @@
             {
                 Username = signUpModel.Username,
                 Password = signUpModel.Password,
-                RoleId = signUpModel.RoleId
+                RoleId = signUpModel.RoleId,
+                Email = string.IsNullOrWhiteSpace(signUpModel.Email) ? null : signUpModel.Email
             };
 
             await UserService.CreateAsync(dto);
@@ -126,6 +136,9 @@
         [Required]
         [StringLength(100, MinimumLength = 3)]
         public string Password { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        public string? Email { get; set; }
 
         [Required]
         public int RoleId { get; set; } = 2;

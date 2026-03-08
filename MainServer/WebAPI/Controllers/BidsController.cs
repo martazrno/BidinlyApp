@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MainServer.WebAPI.Services;
 using MainServer.WebAPI.Protos;
-using BidDto = shared.DTOs.Bids.BidDto;
+using BidDto = Shared.DTOs.Bids.BidDto;
 using CreateBidDto = Shared.DTOs.Bids.CreateBidDto;
 
 namespace MainServer.WebAPI.Controllers
@@ -74,7 +74,9 @@ namespace MainServer.WebAPI.Controllers
                     BuyerUsername = userLookup.GetValueOrDefault(bidResponse.BuyerId)?.Username,
                     Amount = (decimal)bidResponse.Amount,
                     ExpiryDate = expiryDate,
-                    Status = bidResponse.Status
+                    Status = bidResponse.Status,
+                    Deal = bidResponse.Deal,
+                    SignatureValid = bidResponse.SignatureValid
                 };
             }).ToList();
 
@@ -122,7 +124,9 @@ namespace MainServer.WebAPI.Controllers
                         PropertyTitle = property?.Title,
                         Amount = (decimal)b.Amount,
                         ExpiryDate = expiry,
-                        Status = b.Status
+                        Status = b.Status,
+                        Deal = b.Deal,
+                        SignatureValid = b.SignatureValid
                     };
                 }).ToList();
 
@@ -145,7 +149,8 @@ namespace MainServer.WebAPI.Controllers
                     createBidDto.BuyerId,
                     createBidDto.PropertyId,
                     (double)createBidDto.Amount,
-                    expiryDateSeconds
+                    expiryDateSeconds,
+                    createBidDto.Deal 
                 );
 
 
@@ -170,7 +175,9 @@ namespace MainServer.WebAPI.Controllers
                     BuyerUsername = user?.Username,
                     Amount = (decimal)bidResponse.Amount,
                     ExpiryDate = expiryDate,
-                    Status = bidResponse.Status
+                    Status = bidResponse.Status,
+                    Deal = bidResponse.Deal ,
+                    SignatureValid = bidResponse.SignatureValid
                 };
 
                 return CreatedAtAction(nameof(GetManyBids), new { id = bidDto.Id }, bidDto);
@@ -184,41 +191,126 @@ namespace MainServer.WebAPI.Controllers
         [HttpPut("{id}/accept")]
         public async Task<IActionResult> AcceptBid(int id)
         {
-            try
-            {
-                var accepted = await dataTierClient.SetBidStatusAsync(id, "Accepted");
-                var propertyId = accepted.PropertyId;
-                var allBids = await dataTierClient.GetBidsAsync();
-                var otherBids = allBids.Bids.Where(b => b.PropertyId == propertyId && b.Id != id);
-                
-                foreach (var b in otherBids)
-                {
-                    await dataTierClient.SetBidStatusAsync(b.Id, "Rejected");
-                }
-                
-                await propertyClient.SetPropertyStatusAsync(propertyId, "Not Available");
+            await dataTierClient.SetBidStatusAsync(id, "Accepted");
 
-                return NoContent();
-            }
-            catch (Exception ex)
+            var acceptedBid = await dataTierClient.GetBidAsync(id);
+            var property = await propertyClient.GetPropertyAsync(acceptedBid.PropertyId);
+            var propertyTitle = property?.Title ?? "Property";
+            
+            await dataTierClient.CreateNotificationAsync(
+                bidId: acceptedBid.Id,
+                propertyId: acceptedBid.PropertyId,
+                message: $"Your bid for '{propertyTitle}' was accepted.",
+                status: "Accepted",
+                userId: acceptedBid.BuyerId,
+                propertyTitle: propertyTitle
+            );
+            
+            var allBids = await dataTierClient.GetBidsAsync();
+
+            var losingBids = allBids.Bids
+                .Where(b =>
+                    b.PropertyId == acceptedBid.PropertyId &&
+                    b.Id != acceptedBid.Id &&
+                    b.Status != "Accepted"
+                )
+                .ToList();
+
+            foreach (var b in losingBids)
             {
-                return StatusCode(500, $"Error accepting bid: {ex.Message}");
+                await dataTierClient.SetBidStatusAsync(b.Id, "Rejected");
+
+                await dataTierClient.CreateNotificationAsync(
+                    bidId: b.Id,
+                    propertyId: b.PropertyId,
+                    message: $"Your bid for '{propertyTitle}' was rejected.",
+                    status: "Rejected",
+                    userId: b.BuyerId,
+                    propertyTitle: propertyTitle
+                );
             }
+
+            return NoContent();
         }
-    
 
         [HttpPut("{id}/reject")]
         public async Task<IActionResult> RejectBid(int id)
         {
+            await dataTierClient.SetBidStatusAsync(id, "Rejected");
+            var bid = await dataTierClient.GetBidAsync(id);
+            var property = await propertyClient.GetPropertyAsync(bid.PropertyId);
+            var propertyTitle = property?.Title ?? "Property";
+            
             try
             {
-                await dataTierClient.SetBidStatusAsync(id, "Rejected");
-                return NoContent();
+                await dataTierClient.CreateNotificationAsync(
+                    bidId: bid.Id,
+                    propertyId: bid.PropertyId,
+                    message: $"Your bid for '{propertyTitle}' was rejected.",
+                    status: "Rejected",
+                    userId: bid.BuyerId,
+                    propertyTitle: propertyTitle
+                );
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Error rejecting bid: {ex.Message}");
+                Console.WriteLine("Rejected notification failed: " + ex.Message);
             }
+
+            return NoContent();
+        }
+        
+        [HttpGet("accepted")]
+        public async Task<ActionResult<BidDto>> GetAcceptedBid(
+            [FromQuery] int propertyId,
+            [FromQuery] int buyerId)
+        {
+            var bids = await dataTierClient.GetBidsAsync();
+
+            var bid = bids.Bids.FirstOrDefault(b =>
+                b.PropertyId == propertyId &&
+                b.BuyerId == buyerId &&
+                b.Status == "Accepted");
+
+            if (bid == null)
+                return NotFound("No accepted bid found");
+
+            return Ok(new
+            {
+                bidId = bid.Id,
+                propertyId = bid.PropertyId,
+                amount = bid.Amount,
+                buyerId = bid.BuyerId
+            });
+        }
+        
+        [HttpGet("{id}")]
+        public async Task<ActionResult<BidDto>> GetBidById(int id)
+        {
+            var bid = await dataTierClient.GetBidAsync(id);
+            if (bid == null)
+                return NotFound();
+
+            var property = await propertyClient.GetPropertyAsync(bid.PropertyId);
+            var user = await dataTierClient.GetUserAsync(bid.BuyerId);
+
+            DateTime expiry = DateTimeOffset
+                .FromUnixTimeSeconds(bid.ExpiryDateSeconds)
+                .DateTime;
+
+            return Ok(new BidDto
+            {
+                Id = bid.Id,
+                PropertyId = bid.PropertyId,
+                BuyerId = bid.BuyerId,
+                PropertyTitle = property?.Title,
+                BuyerUsername = user?.Username,
+                Amount = (decimal)bid.Amount,
+                ExpiryDate = expiry,
+                Status = bid.Status,
+                Deal = bid.Deal,
+                SignatureValid = bid.SignatureValid
+            });
         }
 
     }

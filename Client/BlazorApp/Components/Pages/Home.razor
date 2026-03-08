@@ -1,10 +1,6 @@
 ﻿@page "/"
-@using shared.DTOs.Properties
-@using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Web
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.JSInterop
-
+@rendermode InteractiveServer
+@using Shared.DTOs.Properties
 @inject HttpPropertyService PropertyService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -92,7 +88,7 @@
                         <div class="card-info">
                             <span class="info-item">@property.Bedrooms Bedrooms</span>
                             <span class="info-item">@property.Bathrooms Bathrooms</span>
-                            <span class="info-item">@property.SizeInSquareFeet.ToString("F0") sq ft</span>
+                            <span class="info-item">@property.SizeInSquareMeters.ToString("F0") sq m</span>
                             <span class="info-item">@property.StartingPrice.ToString("N0") Kr</span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(property.Status))
@@ -123,7 +119,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        
+        await CheckAuthenticationState();  
         await LoadProperties();
     }
     
@@ -180,8 +176,8 @@
             
             if (filterMinSquareMeters.HasValue)
             {
-                double minSquareFeet = filterMinSquareMeters.Value * 10.764;
-                filtered = filtered.Where(p => p.SizeInSquareFeet >= minSquareFeet);
+                double minSquareMeters = filterMinSquareMeters.Value * 10.764;
+                filtered = filtered.Where(p => p.SizeInSquareMeters >= minSquareMeters);
             }
             
             return filtered;

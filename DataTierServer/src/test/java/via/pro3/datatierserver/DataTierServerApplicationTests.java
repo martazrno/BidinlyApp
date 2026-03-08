@@ -1,9 +1,10 @@
 package via.pro3.datatierserver;
 
+import net.devh.boot.grpc.server.service.GrpcService;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.FilterType;
 
-@SpringBootTest
+
 class DataTierServerApplicationTests {
 
     @Test

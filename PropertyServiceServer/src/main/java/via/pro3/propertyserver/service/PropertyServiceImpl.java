@@ -32,7 +32,7 @@ public class PropertyServiceImpl extends PropertyServiceGrpc.PropertyServiceImpl
             property.setStartingPrice(BigDecimal.valueOf(request.getStartingPrice()));
             property.setBedrooms(request.getBedrooms());
             property.setBathrooms(request.getBathrooms());
-            property.setSizeInSquareFeet((double) request.getSizeInSquareFeet());
+            property.setSizeInSquareMeters((double) request.getSizeInSquareMeters());
             property.setDescription(request.hasDescription() ? request.getDescription() : null);
             property.setStatus(request.getStatus().isBlank() ? "Available" : request.getStatus());
             property.setCreationStatus(request.getCreationStatus().isBlank() ? "Pending" : request.getCreationStatus());
@@ -162,11 +162,11 @@ public class PropertyServiceImpl extends PropertyServiceGrpc.PropertyServiceImpl
             }
             property.setBathrooms(request.getBathrooms());
         }
-        if (request.hasSizeInSquareFeet()) {
-            if (request.getSizeInSquareFeet() <= 0) {
-                throw new IllegalArgumentException("Size in square feet must be positive");
+        if (request.hasSizeInSquareMeters()) {
+            if (request.getSizeInSquareMeters() <= 0) {
+                throw new IllegalArgumentException("Size in square meters must be positive");
             }
-            property.setSizeInSquareFeet((double) request.getSizeInSquareFeet());
+            property.setSizeInSquareMeters((double) request.getSizeInSquareMeters());
         }
         if (request.hasDescription()) {
             property.setDescription(request.getDescription());
@@ -195,8 +195,8 @@ public class PropertyServiceImpl extends PropertyServiceGrpc.PropertyServiceImpl
         if (request.getBathrooms() <= 0) {
             throw new IllegalArgumentException("Bathrooms must be greater than zero");
         }
-        if (request.getSizeInSquareFeet() <= 0) {
-            throw new IllegalArgumentException("Size in square feet must be positive");
+        if (request.getSizeInSquareMeters() <= 0) {
+            throw new IllegalArgumentException("Size in square meters must be positive");
         }
     }
 
@@ -209,7 +209,7 @@ public class PropertyServiceImpl extends PropertyServiceGrpc.PropertyServiceImpl
             .setStartingPrice(property.getStartingPrice() != null ? property.getStartingPrice().doubleValue() : 0.0)
             .setBedrooms(property.getBedrooms() != null ? property.getBedrooms() : 0)
             .setBathrooms(property.getBathrooms() != null ? property.getBathrooms() : 0)
-            .setSizeInSquareFeet(property.getSizeInSquareFeet() != null ? property.getSizeInSquareFeet().intValue() : 0)
+            .setSizeInSquareMeters(property.getSizeInSquareMeters() != null ? property.getSizeInSquareMeters().intValue() : 0)
             .setDescription(property.getDescription() != null ? property.getDescription() : "")
             .setStatus(property.getStatus() != null ? property.getStatus() : "Available")
             .setCreationStatus(property.getCreationStatus() != null ? property.getCreationStatus() : "Pending")

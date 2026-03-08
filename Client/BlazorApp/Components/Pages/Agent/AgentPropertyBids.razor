@@ -1,0 +1,139 @@
+@page "/property/{PropertyId:int}/bids"
+@using Shared.DTOs.Bids
+@inject HttpBidService BidService
+@inject NavigationManager Navigation
+@layout NoLayout
+@namespace BlazorApp.Components.Pages.Agent
+
+<div class="bids-page">
+    <button class="back-button" @onclick="GoBack">
+        ← Back
+    </button>
+    <div class="page-header">
+        <h1 class="page-title">Property Bids</h1>
+    </div>
+
+    <div class="bids-section">
+        @if (isLoading)
+        {
+            <div class="loading">Loading bids...</div>
+        }
+        else if (bids == null || !bids.Any())
+        {
+            <div class="no-results">No bids found for this property.</div>
+        }
+        else
+        {
+            <div class="bids-container">
+                @foreach (var bid in bids)
+                {
+                    <div class="bid-card 
+            @(highestBidIds.Contains(bid.Id) ? "highest-bid" : "") 
+            @(bid.Status == "Accepted" ? "accepted-bid" : "") 
+            @(bid.Status == "Rejected" ? "rejected-bid" : "")
+            @(bid.Status == "Expired" ? "expired-bid" : "")">
+
+                        <div class="bid-header">
+                            <h3 class="bid-buyer">@bid.BuyerUsername</h3>
+
+                            @if (bid.Status == "Pending")
+                            {
+                                <div class="bid-actions">
+                                    <button class="accept-button" @onclick="() => AcceptBid(bid.Id)">Accept</button>
+                                    <button class="reject-button" @onclick="() => RejectBid(bid.Id)">Reject</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="bid-status">@bid.Status</span>
+                            }
+                        </div>
+
+                        <div class="bid-info">
+                            <span class="info-item"><strong>Amount:</strong> @bid.Amount.ToString("N0") Kr</span>
+                            <span class="info-item"><strong>Expiry:</strong> @bid.ExpiryDate.ToString("g")</span>
+                            
+                            @if (bid.SignatureValid)
+                            {
+                                <span class="signature-badge signature-valid">
+                                    ✔ Verified
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="signature-badge signature-invalid">
+                                    ✘ Invalid Signature
+                                </span>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(bid.Deal))
+                        {
+                            <div class="bid-deal">
+                                <strong>Message:</strong>
+                                <p>@bid.Deal</p>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public int PropertyId { get; set; }
+
+    private List<BidDto> bids = new();
+    private bool isLoading = true;
+    private List<int> highestBidIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        bids = await BidService.GetByPropertyIdAsync(PropertyId);
+        isLoading = false;
+
+        if (bids.Any())
+        {
+            var maxAmount = bids.Max(b => b.Amount);
+            highestBidIds = bids
+                .Where(b => b.Amount == maxAmount)
+                .Select(b => b.Id)
+                .ToList();
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/agent/property/{PropertyId}");
+    }
+    
+    private async Task AcceptBid(int bidId)
+    {
+        await BidService.AcceptBidAsync(bidId);
+        await RefreshBids();
+    }
+
+    private async Task RejectBid(int bidId)
+    {
+        await BidService.RejectBidAsync(bidId);
+        await RefreshBids();
+    }
+
+    private async Task RefreshBids()
+    {
+        bids = await BidService.GetByPropertyIdAsync(PropertyId);
+        bids = bids.OrderByDescending(b => b.Amount).ToList();
+
+        if (bids.Any())
+        {
+            var maxAmount = bids.Max(b => b.Amount);
+            highestBidIds = bids
+                .Where(b => b.Amount == maxAmount)
+                .Select(b => b.Id)
+                .ToList();
+        }
+
+        StateHasChanged();
+    }
+}

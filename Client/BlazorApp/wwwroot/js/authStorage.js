@@ -51,6 +51,19 @@
                 return null;
             }
         },
+
+        getPublicKey: function () {
+            const userJson = this.getUser();
+            if (!userJson) return null;
+
+            try {
+                const user = JSON.parse(userJson);
+                return user.publicKey || null;
+            } catch {
+                return null;
+            }
+        },
+        
         clearUser: function () {
             sessionStorage.removeItem("currentUser");
             setCookie("");

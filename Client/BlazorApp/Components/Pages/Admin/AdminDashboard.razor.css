@@ -1,0 +1,495 @@
+/* Welcome Section */
+.welcome-section {
+    position: absolute;
+    bottom: 4rem;
+    left: 74rem;
+    z-index: 10;
+}
+
+.welcome-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.welcome-icon {
+    width: 80px !important;
+    height: auto !important;
+    max-width: 80px !important;
+    object-fit: contain;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.welcome-text {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: bold;
+    color: black;
+    font-family: 'Montserrat', sans-serif;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* my monitor view */
+.home-background {
+    position: relative;
+    width: 100%;
+    min-height: 60vh;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f0f0f0; 
+}
+
+.home-background .welcome-icon {
+    width: 80px !important;
+    height: auto !important;
+    max-width: 80px !important;
+}
+
+.home-background img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 4%;
+    transform: translateY(-50%);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 350px;
+}
+
+.hero-title {
+    color: white;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    line-height: 2.5rem;
+    margin-left: 0.5rem;
+}
+
+.hero-search-container {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+}
+
+.hero-search-bar {
+    width: 100%;
+    height: 40px;
+    padding: 1rem 3rem 1rem 1.5rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 30px;
+    background-color: white;
+    color: #333;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    outline: none;
+}
+
+.hero-search-button {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.hero-search-button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.hero-search-button:active {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.search-icon {
+    color: #666;
+    pointer-events: none;
+}
+
+.filter-search-section {
+    width: 100%;
+    padding: 2rem 0;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 130px;
+}
+
+.filter-search-container {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: 50px;
+    padding: 1.5rem 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    max-width: 1200px;
+    width: 95%;
+    gap: 0;
+    height: 130%;
+}
+
+.filter-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.5rem;
+    min-width: 0;
+}
+
+.filter-label {
+    font-size: 0.85rem;
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 0.5rem;
+    text-align: left;
+}
+
+.filter-input {
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    color: #333;
+    background: transparent;
+    width: 100%;
+    padding: 0;
+}
+
+.filter-input::placeholder {
+    color: #999;
+    font-size: 0.9rem;
+}
+
+.filter-separator {
+    width: 1px;
+    height: 40px;
+    background-color: #e0e0e0;
+    margin: 0 0.5rem;
+}
+
+.filter-search-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: black;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 1rem;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+}
+
+.filter-search-button:hover {
+    background-color: #2d4ef3;
+}
+
+.filter-search-button:active {
+    transform: scale(0.95);
+}
+
+.properties-section {
+    width: 100%;
+    background-color: white;
+    padding: 3rem 0;
+    min-height: 40vh;
+}
+
+.properties-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.property-card {
+    display: flex;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid #e0e0e0;
+}
+
+.property-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+    border-color: #ccc;
+}
+
+.property-card:focus {
+    outline: 2px solid #2d4ef3;
+    outline-offset: 2px;
+}
+
+.card-image-placeholder {
+    width: 200px;
+    height: 150px;
+    background-color: #e0e0e0;
+    border-radius: 8px;
+    margin-right: 1.5rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0 0 0.5rem 0;
+    color: #333;
+}
+
+.card-address {
+    color: #666;
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+}
+
+.card-description {
+    color: #888;
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+    font-size: 0.9rem;
+}
+
+.card-info {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.info-item {
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.card-status {
+    color: #006bb7;
+    font-weight: bold;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.loading, .no-results {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: #666;
+    font-size: 1.1rem;
+}
+
+@media (min-width: 1921px) {
+    .home-background {
+        min-height: 50vh;
+    }
+    
+    .hero-title {
+        font-size: 4rem;
+    }
+    
+    .hero-content {
+        left: 8%;
+    }
+}
+
+/* Media query for HP L2245WG monitor (larger screens) */
+@media (min-width: 1600px) and (max-width: 1920px) {
+    .properties-container {
+        max-width: 1200px;
+        padding: 0 2rem;
+    }
+    
+    .welcome-section {
+        left: 77rem;
+        bottom: 6rem;
+    }
+}
+
+/* Media query for ThinkPad T490s laptop (smaller screens) */
+@media (min-width: 1400px) and (max-width: 1599px) {
+    .properties-container {
+        max-width: 1200px;
+        padding: 0 2rem;
+    }
+    
+    .welcome-section {
+        left: 58rem;
+    }
+}
+
+@media (min-width: 1024px) and (max-width: 1399px) {
+    .properties-container {
+        max-width: 1100px;
+        padding: 0 2rem;
+    }
+    
+    .welcome-section {
+        left: 35rem;
+        bottom: 6rem;
+    }
+    
+    .welcome-text {
+        font-size: 1.6rem;
+    }
+    
+    .welcome-icon {
+        width: 60px !important;
+        max-width: 60px !important;
+    }
+}
+
+@media (min-width: 1200px) and (max-width: 1399px) {
+    .welcome-section {
+        left: 45rem;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+    .properties-container {
+        max-width: 100%;
+        padding: 0 2rem;
+    }
+    
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-content {
+        left: 5%;
+        max-width: 400px;
+    }
+    
+    .filter-search-container {
+        flex-wrap: wrap;
+        border-radius: 30px;
+        padding: 1rem;
+    }
+    
+    .filter-field {
+        flex: 1 1 calc(50% - 1rem);
+        padding: 0.5rem 1rem;
+    }
+    
+    .filter-separator {
+        display: none;
+    }
+    
+    .welcome-section {
+        left: 2rem;
+        bottom: 4rem;
+    }
+    
+    .welcome-text {
+        font-size: 1.4rem;
+    }
+    
+    .welcome-icon {
+        width: 50px !important;
+        max-width: 50px !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .filter-search-section {
+        padding: 1rem 0;
+    }
+    
+    .filter-search-container {
+        flex-direction: column;
+        border-radius: 20px;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    
+    .filter-field {
+        width: 100%;
+        padding: 0.5rem 0;
+    }
+    
+    .filter-separator {
+        display: none;
+    }
+    
+    .filter-search-button {
+        width: 100%;
+        height: 45px;
+        border-radius: 25px;
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+    
+    .welcome-section {
+        left: 1rem;
+        bottom: 2rem;
+    }
+    
+    .welcome-text {
+        font-size: 1.2rem;
+    }
+    
+    .welcome-icon {
+        width: 40px !important;
+        max-width: 40px !important;
+    }
+}
+
+.card-image {
+    width: 200px;
+    height: 150px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-right: 1.5rem;
+    background-color: #e0e0e0;
+}
+
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.card-image-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #777;
+    font-size: 0.9rem;
+}

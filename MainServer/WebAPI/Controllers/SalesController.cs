@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using shared.DTOs.Sales;
+using Shared.DTOs.Sales;
 using MainServer.WebAPI.Services;
 using MainServer.WebAPI.Protos;
 using BidResponse = MainServer.WebAPI.Protos.BidResponse;

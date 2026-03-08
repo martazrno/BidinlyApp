@@ -1,0 +1,232 @@
+@page "/buyer/sales"
+@namespace BlazorApp.Components.Pages.Buyer
+@using Shared.DTOs.Sales
+@attribute [Authorize]
+@inject HttpSaleService SaleService
+@inject AuthenticationStateProvider AuthProvider
+@rendermode InteractiveServer
+
+<PageTitle>Sales - Bidinly</PageTitle>
+
+<div class="bids-background">
+    <img src="/assets/images/Table-Background.png" alt="Sales Background" />
+    <h1 class="bids-title">My Sales</h1>
+</div>
+
+<div class="bids-content">
+    <div class="bids-container">
+        <div class="filter-search-section">
+            <div class="filter-search-container">
+                <div class="filter-field filter-field-id">
+                    <label class="filter-label">Id</label>
+                    <input type="number" class="filter-input" placeholder="id?" min="0" @bind="filterId" @oninput="OnIdInput" />
+                </div>
+                <div class="filter-separator"></div>
+                <div class="filter-field filter-field-property">
+                    <label class="filter-label">Property Name</label>
+                    <input type="text" class="filter-input" placeholder="title?" @bind="filterPropertyName" />
+                </div>
+                <div class="filter-separator"></div>
+                <div class="filter-field">
+                    <label class="filter-label">Agent Name</label>
+                    <input type="text" class="filter-input" placeholder="who sold it?" @bind="filterAgentName" />
+                </div>
+                <div class="filter-separator"></div>
+                <div class="filter-field">
+                    <label class="filter-label">Bid Id</label>
+                    <input type="number" class="filter-input" placeholder="bid id?" min="0" @bind="filterBidId" @oninput="OnBidIdInput" />
+                </div>
+                
+                <button class="filter-search-button" @onclick="ApplyFilters">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <table class="bids-table">
+            <thead>
+                <tr>
+                    <th>
+                        <div class="table-header-cell">
+                            <svg class="header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Id</span>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="table-header-cell">
+                            <svg class="header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                            <span>Property Name</span>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="table-header-cell">
+                            <svg class="header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Agent Name</span>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="table-header-cell">
+                            <svg class="header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M7 8H17M7 12H17M7 16H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Bid Id</span>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="table-header-cell">
+                            <svg class="header-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 2V5M16 2V5M3 9H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>Date</span>
+                        </div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (isLoading)
+                {
+                    <tr>
+                        <td colspan="5" class="loading-cell">
+                            <p>Loading sales...</p>
+                        </td>
+                    </tr>
+                }
+                else if (filteredSales.Any())
+                {
+                    @foreach (var sale in filteredSales)
+                    {
+                        <tr>
+                            <td>@sale.Id</td>
+                            <td>@(sale.PropertyTitle ?? "N/A")</td>
+                            <td>@(sale.AgentUsername ?? "N/A")</td>
+                            <td>@sale.WinningBidId</td>
+                            <td>@sale.TimeOfSale.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="empty-cell">
+                            <p>No sales found</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<SaleDto> sales = new();
+    private List<SaleDto> filteredSales = new();
+    private bool isLoading = true;
+    
+    private int? filterId;
+    private string filterPropertyName = string.Empty;
+    private string filterAgentName = string.Empty;
+    private int? filterBidId;
+    
+    private string? currentUserUsername = null;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserInfo();
+        await LoadSales();
+    }
+    
+    private async Task LoadUserInfo()
+    {
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                currentUserUsername = authState.User.Identity.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user info: {ex.Message}");
+        }
+    }
+    
+    private async Task LoadSales()
+    {
+        try
+        {
+            isLoading = true;
+            sales = await SaleService.GetAllAsync();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading sales: {ex.Message}");
+            sales = new List<SaleDto>();
+            filteredSales = new List<SaleDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private void OnIdInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            filterId = null;
+        }
+        else if (int.TryParse(value, out int intValue) && intValue >= 0)
+        {
+            filterId = intValue;
+        }
+        else
+        {
+            filterId = null;
+        }
+    }
+    
+    private void OnBidIdInput(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            filterBidId = null;
+        }
+        else if (int.TryParse(value, out int intValue) && intValue >= 0)
+        {
+            filterBidId = intValue;
+        }
+        else
+        {
+            filterBidId = null;
+        }
+    }
+    
+    private void ApplyFilters()
+    {
+        filteredSales = sales.Where(sale =>
+            sale.BuyerUsername == currentUserUsername &&
+
+            (filterId == null || sale.Id == filterId.Value) &&
+            (string.IsNullOrWhiteSpace(filterPropertyName) ||
+             (sale.PropertyTitle != null && sale.PropertyTitle.Contains(filterPropertyName, StringComparison.OrdinalIgnoreCase))) &&
+            (string.IsNullOrWhiteSpace(filterAgentName) ||
+             (sale.AgentUsername != null && sale.AgentUsername.Contains(filterAgentName, StringComparison.OrdinalIgnoreCase))) &&
+            (filterBidId == null || sale.WinningBidId == filterBidId.Value)
+        ).ToList();
+    }
+}
+

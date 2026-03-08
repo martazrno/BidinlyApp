@@ -1,5 +1,4 @@
-using System.Net.Http.Json;
-using shared.DTOs.Sales;
+using Shared.DTOs.Sales;
 
 namespace BlazorApp.Services;
 

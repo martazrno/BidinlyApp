@@ -1,7 +1,6 @@
 using MainServer.WebAPI.Services;
-using MainServer.WebAPI.Protos;
 using Microsoft.AspNetCore.Mvc;
-using shared.DTOs.Users;
+using Shared.DTOs.Users;
 using Shared.DTOs.Auth;
 
 namespace MainServer.WebAPI.Controllers
@@ -47,7 +46,9 @@ namespace MainServer.WebAPI.Controllers
                 {
                     Id = response.Id,
                     Username = response.Username,
-                    RoleName = roleName
+                    RoleName = roleName,
+                    Email = response.HasEmail ? response.Email : null,
+                    PublicKey = response.PublicKey,
                 };
 
                 return Ok(responseDto);

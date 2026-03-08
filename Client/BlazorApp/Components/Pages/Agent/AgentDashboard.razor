@@ -1,0 +1,329 @@
+@page "/agent-dashboard"
+@namespace BlazorApp.Components.Pages.Agent
+@using Shared.DTOs.Properties
+@attribute [Authorize]
+@inject HttpPropertyService PropertyService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Agent Dashboard - Bidinly</PageTitle>
+
+<div class="home-background">
+    <img src="/assets/images/Home-Background.png" alt="Modern Property" />
+
+    <div class="welcome-section">
+        @if (isLoadingAuth)
+        {
+            <div class="welcome-container">
+                <img src="/assets/icons/agentIcon.png" alt="Agent Icon" class="welcome-icon" />
+                <h2 class="welcome-text">Welcome Agent!</h2>
+            </div>
+        }
+        else
+        {
+            <div class="welcome-container">
+                <img src="@welcomeIconPath" alt="@welcomeIconAlt" class="welcome-icon" />
+                <h2 class="welcome-text">Welcome @welcomeRoleName!</h2>
+            </div>
+        }
+    </div>
+
+    <div class="hero-content">
+        <AuthorizeView>
+            <Authorizing>
+                <h1 class="hero-title">Auction your properties to maximize profits...</h1>
+            </Authorizing>
+
+            <Authorized Context="authContext">
+                @{
+                    var role = authContext.User.FindFirst("RoleName")?.Value ?? "Agent";
+                    var heroTitle = role switch
+                    {
+                        "Admin" => "Manage property creation.",
+                        "Agent" => "Auction your properties to maximize profits...",
+                        _ => "Bid to win your Dream Property..."
+                    };
+                }
+                <h1 class="hero-title">@heroTitle</h1>
+            </Authorized>
+
+            <NotAuthorized>
+                <h1 class="hero-title">Auction your properties to maximize profits...</h1>
+            </NotAuthorized>
+        </AuthorizeView>
+
+        <div class="hero-search-container">
+            <input type="text"
+                   class="hero-search-bar"
+                   placeholder="Find a property..."
+                   @bind="searchQuery"
+                   @bind:event="oninput" />
+        </div>
+    </div>
+</div>
+
+<div class="filter-search-section">
+    <div class="filter-search-container">
+
+        <div class="filter-field">
+            <label class="filter-label">City</label>
+            <input type="text"
+                   class="filter-input"
+                   placeholder="city?"
+                   @bind="filterCity"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="filter-separator"></div>
+
+        <div class="filter-field">
+            <label class="filter-label">Bedrooms</label>
+            <input type="number"
+                   class="filter-input"
+                   placeholder="bedrooms?"
+                   min="0"
+                   @bind="filterBedrooms"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="filter-separator"></div>
+
+        <div class="filter-field">
+            <label class="filter-label">Bathrooms</label>
+            <input type="number"
+                   class="filter-input"
+                   placeholder="bathrooms?"
+                   min="0"
+                   @bind="filterBathrooms"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="filter-separator"></div>
+
+        <div class="filter-field">
+            <label class="filter-label">Min Price</label>
+            <input type="number"
+                   class="filter-input"
+                   placeholder="min price?"
+                   min="0"
+                   @bind="filterMinPrice"
+                   @bind:event="oninput" />
+        </div>
+
+        <div class="filter-separator"></div>
+
+        <div class="filter-field">
+            <label class="filter-label">Max Price</label>
+            <input type="number"
+                   class="filter-input"
+                   placeholder="max price?"
+                   min="0"
+                   @bind="filterMaxPrice"
+                   @bind:event="oninput" />
+        </div>
+
+    </div>
+</div>
+
+<div class="properties-section">
+    <div class="properties-container">
+        @if (isLoading)
+        {
+            <div class="loading">Loading properties...</div>
+        }
+        else if (!filteredProperties.Any())
+        {
+            <div class="no-results">No properties found.</div>
+        }
+        else
+        {
+            @foreach (var property in filteredProperties)
+            {
+                <div class="property-card" @onclick="() => NavigateBasedOnOwner(property)">
+                    
+                    
+                    @{
+                        List<string>? cardImages = null;
+
+                        if (!string.IsNullOrWhiteSpace(property.ImageUrl))
+                        {
+                            try
+                            {
+                                cardImages = System.Text.Json.JsonSerializer
+                                    .Deserialize<List<string>>(property.ImageUrl);
+                            }
+                            catch
+                            {
+                                cardImages = new List<string> { property.ImageUrl };
+                            }
+                        }
+
+                        var firstImage = cardImages?.FirstOrDefault();
+                    }
+                    
+                    <div class="card-image-placeholder">
+                        @if (firstImage != null)
+                        {
+                            <img src="@firstImage" class="card-image" />
+                        }
+                        else
+                        {
+                            <span>Image</span>
+                        }
+                    </div>
+
+                    <div class="card-details">
+                        <h3 class="card-title">@property.Title</h3>
+
+                        @if (!string.IsNullOrWhiteSpace(property.Address))
+                        {
+                            <p class="card-address">@property.Address</p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(property.Description))
+                        {
+                            <p class="card-description">@property.Description</p>
+                        }
+
+                        <div class="card-info">
+                            <span class="info-item">Bedrooms: @property.Bedrooms</span>
+                            <span class="info-item">Bathrooms: @property.Bathrooms</span>
+                            <span class="info-item">Size: @property.SizeInSquareMeters sq m</span>
+                            <span class="info-item">@property.StartingPrice.ToString("N0") Kr</span>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(property.Status))
+                        {
+                            <p class="card-status">@property.Status</p>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private bool isLoadingAuth = true;
+
+    private string searchQuery = string.Empty;
+    private string filterCity = string.Empty;
+    private int? filterBedrooms;
+    private int? filterBathrooms;
+    private decimal? filterMinPrice;
+    private decimal? filterMaxPrice;
+    private string welcomeRoleName = "Agent";
+    private string welcomeIconPath = "/assets/icons/agentIcon.png";
+    private string welcomeIconAlt = "Agent Icon";
+    private List<PropertyDto>? properties;
+    private bool isLoading = true;
+    private int? currentAgentId = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthState();
+        await LoadAgentId();
+        await LoadProperties();
+    }
+
+    private async Task LoadAuthState()
+    {
+        isLoadingAuth = true;
+
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                welcomeRoleName = authState.User.FindFirst("RoleName")?.Value ?? "Agent";
+
+                welcomeIconPath = welcomeRoleName switch
+                {
+                    "Admin" => "/assets/icons/adminIcon.png",
+                    "Agent" => "/assets/icons/agentIcon.png",
+                    _ => "/assets/icons/buyerIcon.png"
+                };
+
+                welcomeIconAlt = $"{welcomeRoleName} Icon";
+            }
+        }
+        catch
+        {
+            
+        }
+        finally
+        {
+            isLoadingAuth = false;
+        }
+    }
+
+    private async Task LoadProperties()
+    {
+        isLoading = true;
+        
+        try
+        {
+            var allProps = await PropertyService.GetAllAsync();
+
+            properties = allProps
+                .Where(p => p.CreationStatus == "Approved")
+                .Where(p => !string.Equals(p.Status, "Sold", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        catch
+        {
+            properties = new();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IEnumerable<PropertyDto> filteredProperties =>
+        (properties ?? Enumerable.Empty<PropertyDto>())
+        .Where(p => p.CreationStatus == "Approved")
+        .Where(p => !string.Equals(p.Status, "Sold", StringComparison.OrdinalIgnoreCase))
+        .Where(p => string.IsNullOrWhiteSpace(searchQuery)
+                    || p.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+        .Where(p => string.IsNullOrWhiteSpace(filterCity)
+                    || p.Address.Contains(filterCity, StringComparison.OrdinalIgnoreCase))
+        .Where(p => !filterBedrooms.HasValue || p.Bedrooms >= filterBedrooms.Value)
+        .Where(p => !filterBathrooms.HasValue || p.Bathrooms >= filterBathrooms.Value)
+        .Where(p => !filterMinPrice.HasValue || p.StartingPrice >= filterMinPrice.Value)
+        .Where(p => !filterMaxPrice.HasValue || p.StartingPrice <= filterMaxPrice.Value);
+
+    private void NavigateToProperty(int propertyId)
+    {
+        Navigation.NavigateTo($"/property/{propertyId}");
+    }
+    
+    private async Task LoadAgentId()
+    {
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var idClaim = authState.User.FindFirst("Id")?.Value;
+
+            if (int.TryParse(idClaim, out int id))
+                currentAgentId = id;
+        }
+        catch
+        {
+            currentAgentId = null;
+        }
+    }
+    
+    private void NavigateBasedOnOwner(PropertyDto property)
+    {
+        if (currentAgentId.HasValue && property.AgentId == currentAgentId.Value)
+        {
+            Navigation.NavigateTo($"/agent/property/{property.Id}");
+        }
+        else
+        {
+            Navigation.NavigateTo($"/property/{property.Id}");
+        }
+    }
+}

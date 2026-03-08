@@ -1,13 +1,16 @@
 @page "/property/{PropertyId:int}"
 @layout NoLayout
-@using shared.DTOs.Properties
+@using Shared.DTOs.Properties
 @using Shared.DTOs.Bids
+
 @attribute [Authorize]
 @inject HttpPropertyService PropertyService
 @inject HttpBidService BidService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthProvider
 @rendermode InteractiveServer
+
+@namespace BlazorApp.Components.Pages
 
 <PageTitle>Property Details - Bidinly</PageTitle>
 
@@ -39,10 +42,46 @@ else
                 }
             </div>
             
-            <div class="property-detail-image-placeholder">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <div class="property-detail-images">
+
+                @if (imageUrls.Count == 0)
+                {
+                    <div class="property-detail-image-placeholder">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20 5 20 6 21H9M19 10L21 12M19 10V20C19 20 18 21 18 21H15M9 21H15"
+                                  stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                }
+                else
+                {
+                    <div class="image-carousel">
+
+                        @if (imageUrls.Count > 1)
+                        {
+                            <button class="carousel-btn left"
+                                    @onclick="PrevImage"
+                                    @onclick:stopPropagation="true">
+                                ‹
+                            </button>
+                        }
+
+                        <img src="@imageUrls[currentImageIndex]"
+                             class="carousel-image clickable-image"
+                             @onclick="() => OpenImage(imageUrls[currentImageIndex])" />
+
+                        @if (imageUrls.Count > 1)
+                        {
+                            <button class="carousel-btn right"
+                                    @onclick="NextImage"
+                                    @onclick:stopPropagation="true">
+                                ›
+                            </button>
+                        }
+
+                    </div>
+                }
+
             </div>
             
             <div class="property-detail-info-grid">
@@ -82,8 +121,6 @@ else
                                 Bidding Closed — A bid has been accepted.
                             </div>
                         }
-
-                        <button class="bid-button" @onclick="GoToBids">View Bids</button>
                     </div>
                     
                     <div class="property-detail-specs">
@@ -98,7 +135,7 @@ else
                         </div>
                         <div class="spec-item">
                             <span class="spec-label">Size:</span>
-                            <span class="spec-value">@property.SizeInSquareFeet.ToString("F0") sq ft</span>
+                            <span class="spec-value">@property.SizeInSquareMeters.ToString("F0") sq m</span>
                         </div>
                         @if (!string.IsNullOrWhiteSpace(property.AgentName))
                         {
@@ -134,6 +171,16 @@ else
                            min="0" 
                            placeholder="Enter bid amount" />
                 </div>
+                
+                <div class="bid-form-group">
+					<label for="bid-deal">Deal (optional)</label>
+    				<textarea id="bid-deal"
+                      class="bid-form-input"
+                      @bind="bidDeal"
+                      rows="3"
+                      placeholder="Suggest a deal ..."></textarea>
+				</div>
+                
                 <div class="bid-form-group">
                     <label for="bid-expiry">Expiry Date</label>
                     <input type="datetime-local" 
@@ -173,6 +220,16 @@ else
     </div>
 }
 
+@if (showImageModal && selectedImageUrl != null)
+{
+    <div class="image-modal-overlay" @onclick="CloseImage">
+        <div class="image-modal-content" @onclick:stopPropagation="true">
+            <img src="@selectedImageUrl" class="image-modal-full" />
+            <button class="image-modal-close" @onclick="CloseImage">×</button>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter]
     public int PropertyId { get; set; }
@@ -186,12 +243,13 @@ else
     private string? errorMessage;
     private string? successMessage;
     private bool IsNotAvailable => property?.Status == "Not Available";
+    private string? bidDeal;
+    private List<string> imageUrls = new();
+    private int currentImageIndex = 0;
+
+    private bool showImageModal = false;
+    private string? selectedImageUrl;
     
-    
-    private void GoToBids()
-    {
-        Navigation.NavigateTo($"/property/{PropertyId}/bids");
-    }
     
     protected override async Task OnParametersSetAsync()
     {
@@ -205,6 +263,24 @@ else
         {
             loading = true;
             property = await PropertyService.GetByIdAsync(PropertyId);
+
+            imageUrls = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(property?.ImageUrl))
+            {
+                try
+                {
+                    imageUrls = System.Text.Json.JsonSerializer
+                                    .Deserialize<List<string>>(property.ImageUrl)
+                                ?? new List<string>();
+                }
+                catch
+                {
+                    imageUrls.Add(property.ImageUrl);
+                }
+            }
+
+            currentImageIndex = 0;
         }
         catch (Exception ex)
         {
@@ -288,7 +364,8 @@ else
                 BuyerId = buyerId,
                 PropertyId = PropertyId,
                 Amount = bidAmount,
-                ExpiryDate = bidExpiryDate
+                ExpiryDate = bidExpiryDate,
+                Deal= bidDeal
             };
             
             await BidService.CreateAsync(createBidDto);
@@ -312,6 +389,30 @@ else
         {
             isSubmittingBid = false;
         }
+    }
+    
+    private void NextImage()
+    {
+        if (imageUrls.Count == 0) return;
+        currentImageIndex = (currentImageIndex + 1) % imageUrls.Count;
+    }
+
+    private void PrevImage()
+    {
+        if (imageUrls.Count == 0) return;
+        currentImageIndex = (currentImageIndex - 1 + imageUrls.Count) % imageUrls.Count;
+    }
+    
+    private void OpenImage(string url)
+    {
+        selectedImageUrl = url;
+        showImageModal = true;
+    }
+
+    private void CloseImage()
+    {
+        showImageModal = false;
+        selectedImageUrl = null;
     }
 }
 

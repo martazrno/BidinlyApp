@@ -1,0 +1,185 @@
+@page "/payment/{PropertyId:int}/{BidId:int}"
+@layout NoLayout
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@using Shared.DTOs.Properties
+@using Shared.DTOs.Bids
+@using Shared.DTOs.Payments
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>Payment - Bidinly</PageTitle>
+
+<div class="payment-page">
+    <div class="page-header">
+        <button class="back-button" @onclick="GoBack">← Back</button>
+        <h1 class="page-title">Complete Your Payment</h1>
+    </div>
+
+    <div class="payment-container">
+
+        <!-- Property Summary -->
+        <div class="payment-card">
+            <h2 class="section-title">Property Summary</h2>
+
+            <div class="summary-item">
+                <strong>Property:</strong> @PropertyTitle
+            </div>
+            <div class="summary-item">
+                <strong>Amount Due:</strong> @Price.ToString("N0") Kr
+            </div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="payment-card">
+            <h2 class="section-title">Payment Details</h2>
+
+            <div class="form-group">
+                <label>Name on Card</label>
+                <input class="input" @bind="NameOnCard" placeholder="Full Name" />
+            </div>
+
+            <div class="form-group">
+                <label>Card Number</label>
+                <input class="input" @bind="CardNumber" maxlength="19" placeholder="xxxx xxxx xxxx xxxx" />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Expiration (MM/YY)</label>
+                    <input class="input" @bind="Expiration" maxlength="5" placeholder="MM/YY" />
+                </div>
+
+                <div class="form-group">
+                    <label>CVC</label>
+                    <input class="input" @bind="CVC" maxlength="4" placeholder="123" />
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">@ErrorMessage</div>
+            }
+
+            @if (!string.IsNullOrEmpty(SuccessMessage))
+            {
+                <div class="success-message">@SuccessMessage</div>
+            }
+
+            <button class="pay-button" @onclick="SubmitPayment" disabled="@IsSubmitting">
+                @if (IsSubmitting)
+                {
+                    <text>Processing...</text>
+                }
+                else
+                {
+                    <text>Pay Now</text>
+                }
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int PropertyId { get; set; }
+    [Parameter] public int BidId { get; set; }
+
+    private string PropertyTitle = "";
+    private decimal Price = 0;
+    private string NameOnCard = "";
+    private string CardNumber = "";
+    private string Expiration = "";
+    private string CVC = "";
+    private string Email = "";
+    private string Address = "";
+
+    private string ErrorMessage = "";
+    private string SuccessMessage = "";
+    private bool IsSubmitting = false;
+    private int BuyerId;
+    private int AgentId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        BuyerId = int.Parse(authState.User.FindFirst("Id")!.Value);
+
+        var bid = await Http.GetFromJsonAsync<BidDto>(
+            $"/bids/{BidId}");
+
+        if (bid == null)
+        {
+            ErrorMessage = "Bid not found";
+            return;
+        }
+
+        Price = bid.Amount;
+        PropertyTitle = bid.PropertyTitle;
+        var property = await Http.GetFromJsonAsync<PropertyDto>(
+            $"/properties/{PropertyId}");
+
+        if (property == null)
+        {
+            ErrorMessage = "Property not found";
+            return;
+        }
+
+        AgentId = property.AgentId 
+                  ?? throw new Exception("Property has no agent assigned");
+    }
+
+    private void GoBack() =>
+        Navigation.NavigateTo($"/buyer-notifications");
+    
+    private async Task SubmitPayment()
+    {
+        ErrorMessage = "";
+        SuccessMessage = "";
+        IsSubmitting = true;
+
+        try
+        {
+            var dto = new
+            {
+                cardNumber = CardNumber,
+                expirationDate = Expiration,
+                cvc = CVC,
+                name = NameOnCard,
+                propertyId = PropertyId,
+                bidId = BidId,
+                buyerId = BuyerId,
+                agentId = AgentId
+            };
+
+            var response = await Http.PostAsJsonAsync(
+                "payments/validate-card",
+                dto
+            );
+
+            if (!response.IsSuccessStatusCode)
+            {
+                ErrorMessage = "Payment failed";
+                return;
+            }
+
+            var result = await response.Content
+                .ReadFromJsonAsync<ValidateCardResponseDto>();
+
+            if (result == null || !result.IsValid)
+            {
+                ErrorMessage = result?.Message ?? "Payment rejected";
+                return;
+            }
+
+            SuccessMessage = "Payment completed successfully!";
+            Navigation.NavigateTo("/buyer-dashboard");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsSubmitting = false;
+        }
+    }
+}

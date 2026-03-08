@@ -125,12 +125,12 @@ class PropertyServiceImplTest {
     @Test
     void createProperty_zeroSize_returnsInvalidArgument() {
         PropertyProto.CreatePropertyRequest request = baseRequest()
-            .setSizeInSquareFeet(0)
+            .setSizeInSquareMeters(0)
             .build();
 
         propertyService.createProperty(request, responseObserver);
 
-        verifyInvalidArgument("Size in square feet must be positive");
+        verifyInvalidArgument("Size in square meters must be positive");
         verify(propertyRepository, never()).save(any());
     }
 
@@ -170,7 +170,7 @@ class PropertyServiceImplTest {
             .setStartingPrice(100000)
             .setBedrooms(1)
             .setBathrooms(1)
-            .setSizeInSquareFeet(500)
+            .setSizeInSquareMeters(500)
             .build();
 
         Property saved = new Property();
@@ -180,7 +180,7 @@ class PropertyServiceImplTest {
         saved.setStartingPrice(BigDecimal.valueOf(100000));
         saved.setBedrooms(1);
         saved.setBathrooms(1);
-        saved.setSizeInSquareFeet(500.0);
+        saved.setSizeInSquareMeters(500.0);
         saved.setStatus("Available");
 
         when(propertyRepository.save(any(Property.class))).thenReturn(saved);
@@ -220,7 +220,7 @@ class PropertyServiceImplTest {
             .setStartingPrice(450000.00)
             .setBedrooms(2)
             .setBathrooms(2)
-            .setSizeInSquareFeet(1200)
+            .setSizeInSquareMeters(1200)
             .setDescription("Beautiful apartment with stunning city views")
             .setStatus("Available");
     }
@@ -234,7 +234,7 @@ class PropertyServiceImplTest {
         property.setStartingPrice(BigDecimal.valueOf(450000.00));
         property.setBedrooms(2);
         property.setBathrooms(2);
-        property.setSizeInSquareFeet(1200.0);
+        property.setSizeInSquareMeters(1200.0);
         property.setDescription("Beautiful apartment with stunning city views");
         property.setStatus("Available");
         return property;

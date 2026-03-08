@@ -8,9 +8,34 @@ import via.pro3.datatierserver.grpc.UserServiceGrpc;
 import via.pro3.datatierserver.model.User;
 import via.pro3.datatierserver.repositories.IUserRepository;
 
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import via.pro3.datatierserver.security.AESUtil;
+import via.pro3.datatierserver.security.PasswordHasher;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.asn1.x500.X500Name;
+
+import java.security.Security;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.math.BigInteger;
+import java.util.Base64;
+import java.util.Calendar;
+import java.util.Date;
 
 @GrpcService
 public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
@@ -23,44 +48,101 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
         try {
             if (request.getUsername() == null || request.getUsername().trim().isEmpty()) {
                 responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                    .withDescription("Username is required")
-                    .asRuntimeException());
+                        .withDescription("Username is required")
+                        .asRuntimeException());
                 return;
             }
-            
+
             if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
                 responseObserver.onError(io.grpc.Status.INVALID_ARGUMENT
-                    .withDescription("Password is required")
-                    .asRuntimeException());
+                        .withDescription("Password is required")
+                        .asRuntimeException());
                 return;
             }
-            
+
             Optional<User> existingUser = userRepository.findByUsername(request.getUsername());
             if (existingUser.isPresent()) {
                 responseObserver.onError(io.grpc.Status.ALREADY_EXISTS
-                    .withDescription("Username already exists: " + request.getUsername())
-                    .asRuntimeException());
+                        .withDescription("Username already exists: " + request.getUsername())
+                        .asRuntimeException());
                 return;
             }
 
             User newUser = new User();
             newUser.setUsername(request.getUsername());
-            newUser.setPassword(request.getPassword());
+            String hashedPassword = PasswordHasher.hash(request.getPassword());
+            newUser.setPassword(hashedPassword);
             newUser.setRoleId(request.getRoleId());
-            
+            newUser.setIsActive(true);
+
+            if (request.hasEmail() && !request.getEmail().trim().isEmpty()) {
+                newUser.setEmail(request.getEmail());
+            }
+
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+            KeyPair keyPair = keyGen.generateKeyPair();
+
+            PrivateKey privateKey = keyPair.getPrivate();
+            PublicKey publicKey = keyPair.getPublic();
+
+            String publicKeyBase64 = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+            String privateKeyBase64 = Base64.getEncoder().encodeToString(privateKey.getEncoded());
+
+            System.out.println("Public key for user: " + publicKeyBase64);
+            System.out.println("Private key for user: " + privateKeyBase64);
+
+
+           //Generate Self-Signed Certificate
+            Security.addProvider(new BouncyCastleProvider());
+
+            X500Name dnName = new X500Name("CN=" + request.getUsername());
+            BigInteger serialNumber = BigInteger.valueOf(System.currentTimeMillis());
+
+            Date startDate = new Date();
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.YEAR, 1);
+            Date endDate = calendar.getTime();
+
+            ContentSigner contentSigner = new JcaContentSignerBuilder("SHA256withRSA")
+                    .build(privateKey);
+
+            X509v3CertificateBuilder certBuilder = new JcaX509v3CertificateBuilder(
+                    dnName,
+                    serialNumber,
+                    startDate,
+                    endDate,
+                    dnName,
+                    publicKey
+            );
+
+            X509Certificate certificate = new JcaX509CertificateConverter()
+                    .setProvider("BC")
+                    .getCertificate(certBuilder.build(contentSigner));
+
+            String certificateBase64 =
+                    Base64.getEncoder().encodeToString(certificate.getEncoded());
+
+            System.out.println("Generated cert for user:");
+            System.out.println(certificateBase64);
+
+            //store keys & certificate in user entity
+            newUser.setPublicKey(publicKeyBase64);
+            String encryptedPrivateKey = AESUtil.encrypt(privateKeyBase64, hashedPassword);
+            newUser.setPrivateKey(encryptedPrivateKey);
+            newUser.setCertificate(certificateBase64);
+
             User savedUser = userRepository.save(newUser);
-            
+
             DataTierProto.UserResponse response = convertToUserResponse(savedUser);
-            
+
             responseObserver.onNext(response);
             responseObserver.onCompleted();
-            
-        } catch (io.grpc.StatusRuntimeException e) {
-            responseObserver.onError(e);
+
         } catch (Exception e) {
             responseObserver.onError(io.grpc.Status.INTERNAL
-                .withDescription("Error creating user: " + e.getMessage())
-                .asRuntimeException());
+                    .withDescription("Error creating user: " + e.getMessage())
+                    .asRuntimeException());
         }
     }
 
@@ -144,13 +226,22 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
                 }
                 user.setUsername(request.getUsername());
             }
-            
+
             if (request.hasPassword()) {
-                user.setPassword(request.getPassword());
+                String hashedPassword = PasswordHasher.hash(request.getPassword());
+                user.setPassword(hashedPassword);
             }
             
             if (request.hasRoleId()) {
                 user.setRoleId(request.getRoleId());
+            }
+            
+            if (request.hasIsActive()) {
+                user.setIsActive(request.getIsActive());
+            }
+            
+            if (request.hasEmail()) {
+                user.setEmail(request.getEmail().trim().isEmpty() ? null : request.getEmail());
             }
             
             User updatedUser = userRepository.save(user);
@@ -196,11 +287,17 @@ public class UserGrpcService extends UserServiceGrpc.UserServiceImplBase {
     }
 
     private DataTierProto.UserResponse convertToUserResponse(User user) {
-        return DataTierProto.UserResponse.newBuilder()
+        DataTierProto.UserResponse.Builder builder = DataTierProto.UserResponse.newBuilder()
             .setId(user.getId() != null ? user.getId() : 0)
             .setUsername(user.getUsername() != null ? user.getUsername() : "")
             .setRoleId(user.getRoleId() != null ? user.getRoleId() : 0)
-            .build();
+            .setIsActive(user.getIsActive() != null ? user.getIsActive() : true);
+        
+        if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+            builder.setEmail(user.getEmail());
+        }
+        
+        return builder.build();
     }
 }
 

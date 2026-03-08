@@ -1,7 +1,4 @@
-using System.Net.Http.Json;
 using Shared.DTOs.Bids;
-using shared.DTOs.Bids;
-
 namespace BlazorApp.Services;
 
 public class HttpBidService

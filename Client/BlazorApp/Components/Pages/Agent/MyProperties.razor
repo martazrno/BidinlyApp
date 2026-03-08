@@ -1,0 +1,398 @@
+@page "/my-properties"
+@namespace BlazorApp.Components.Pages.Agent
+@using Shared.DTOs.Properties
+@attribute [Authorize]
+@inject HttpPropertyService PropertyService
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthProvider
+
+<PageTitle>My Properties - Bidinly</PageTitle>
+
+<div class="properties-background">
+    <img src="/assets/images/Table-Background.png" alt="Properties Background" />
+    <h1 class="properties-title">My Properties</h1>
+</div>
+
+<div class="properties-content">
+    <div class="properties-container">
+        <button class="add-property-button" @onclick="ShowCreatePropertyModal" type="button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Add Property
+        </button>
+        
+        <div class="filter-search-section">
+            <div class="filter-search-container">
+                <div class="filter-field filter-field-property">
+                    <label class="filter-label">Title</label>
+                    <input type="text" class="filter-input" placeholder="title?"
+                           @bind="filterTitle" />
+                </div>
+
+                <div class="filter-separator"></div>
+
+                <div class="filter-field">
+                    <label class="filter-label">Address</label>
+                    <input type="text" class="filter-input" placeholder="address?"
+                           @bind="filterAddress" />
+                </div>
+
+                <div class="filter-separator"></div>
+
+                <div class="filter-field">
+                    <label class="filter-label">Status</label>
+                    <select class="filter-input" @bind="filterStatus">
+                        <option value="">Any</option>
+                        <option value="Available">Available</option>
+                        <option value="Sold">Sold</option>
+                    </select>
+                </div>
+
+                <button class="filter-search-button" @onclick="ApplyFilters">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 21L15 15M17 10C17 13.866 13.866 17 10 17C6.13401 17 3 13.866 3 10C3 6.13401 6.13401 3 10 3C13.866 3 17 6.13401 17 10Z"
+                              stroke="white" stroke-width="2"
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+
+            </div>
+        </div>
+    </div>
+    
+    
+
+    <div class="properties-section">
+    <div class="properties-container">
+        @if (isLoading)
+        {
+            <div class="loading">Loading properties...</div>
+        }
+        else if (properties == null || !properties.Any())
+        {
+            <div class="no-results">No properties found. Click "Add Property" to create your first property.</div>
+        }
+        else
+        {
+            @foreach (var property in filteredProperties)
+            {
+                <div class="property-card" @onclick="() => NavigateToProperty(property.Id)">
+                    @{
+                        List<string>? cardImages = null;
+                        if (!string.IsNullOrWhiteSpace(property.ImageUrl))
+                        {
+                            try
+                            {
+                                cardImages = System.Text.Json.JsonSerializer.Deserialize<List<string>>(property.ImageUrl);
+                            }
+                            catch
+                            {
+                                cardImages = new List<string> { property.ImageUrl };
+                            }
+                        }
+                        var firstImage = cardImages?.FirstOrDefault();
+                    }
+
+                    <div class="card-image-placeholder">
+                        @if (firstImage != null)
+                        {
+                            <img src="@firstImage" class="card-image" />
+                        }
+                        else
+                        {
+                            <span>Image</span>
+                        }
+                    </div>
+
+                    <div class="card-details">
+                        <h3 class="card-title">@property.Title</h3>
+                        <p class="card-address">@property.Address</p>
+                        <p class="card-description">@property.Description</p>
+                        <div class="card-info">
+                            <span class="info-item">Bedrooms: @property.Bedrooms</span>
+                            <span class="info-item">Bathrooms: @property.Bathrooms</span>
+                            <span class="info-item">Size: @property.SizeInSquareMeters sq m</span>
+                            <span class="info-item">Price: $@property.StartingPrice.ToString("N0")</span>
+                        </div>
+
+                        <div class="card-status-section">
+                            @if (property.CreationStatus == "Pending")
+                            {
+                                <span class="card-status pending">Waiting for approval</span>
+                            }
+                            else if (property.CreationStatus == "Rejected")
+                            {
+                                <span class="card-status rejected">Rejected</span>
+                            }
+                            else
+                            {
+                                @if (property.Status == "Available" || property.Status == "Active")
+                                {
+                                    <span class="card-status normal">@property.Status</span>
+                                }
+                                else if (property.Status == "Sold")
+                                {
+                                    <span class="card-status sold">Sold</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(property.Status))
+                                {
+                                    <span class="card-status normal">@property.Status</span>
+                                }
+                            }
+
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+</div>
+
+@if (showCreateModal)
+{
+    <div class="modal-overlay" @onclick="HideCreatePropertyModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2 class="modal-title">Create New Property</h2>
+                <button class="modal-close-button" @onclick="HideCreatePropertyModal" type="button">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <EditForm Model="@createPropertyDto" OnValidSubmit="HandleCreateProperty">
+                    <DataAnnotationsValidator />
+                    <div class="form-group">
+                        <label class="form-label" for="title">Title <span class="required">*</span></label>
+                        <InputText id="title" class="form-input" @bind-Value="createPropertyDto.Title" placeholder="Enter property title" />
+                        <ValidationMessage For="@(() => createPropertyDto.Title)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="address">Address <span class="required">*</span></label>
+                        <InputText id="address" class="form-input" @bind-Value="createPropertyDto.Address" placeholder="Enter property address" />
+                        <ValidationMessage For="@(() => createPropertyDto.Address)" />
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="startingPrice">Starting Price <span class="required">*</span></label>
+                            <InputNumber id="startingPrice" class="form-input" 
+                                         @bind-Value="createPropertyDto.StartingPrice" placeholder="0.00" />
+                            <ValidationMessage For="@(() => createPropertyDto.StartingPrice)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="sizeInSquareMeters">Size (sq m) <span class="required">*</span></label>
+                            <InputNumber id="sizeInSquareMeters" class="form-input" 
+                                         @bind-Value="createPropertyDto.SizeInSquareMeters" placeholder="0" />
+                            <ValidationMessage For="@(() => createPropertyDto.SizeInSquareMeters)" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="bedrooms">Bedrooms <span class="required">*</span></label>
+                            <InputNumber id="bedrooms" class="form-input" @bind-Value="createPropertyDto.Bedrooms" placeholder="0" />
+                            <ValidationMessage For="@(() => createPropertyDto.Bedrooms)" />
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="bathrooms">Bathrooms <span class="required">*</span></label>
+                            <InputNumber id="bathrooms" class="form-input" @bind-Value="createPropertyDto.Bathrooms" placeholder="0" />
+                            <ValidationMessage For="@(() => createPropertyDto.Bathrooms)" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="description">Description</label>
+                        <textarea id="description" class="form-input form-textarea" @bind="createPropertyDto.Description" placeholder="Enter property description (optional)" rows="4"></textarea>
+                        <ValidationMessage For="@(() => createPropertyDto.Description)" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Property Images (up to 5)</label>
+                        <input id="propertyImagesInput" type="file" multiple accept="image/*" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(createPropertyError))
+                    {
+                        <div class="form-error">@createPropertyError</div>
+                    }
+
+                    <div class="modal-footer">
+                        <button type="button" class="form-button form-button-cancel"
+                                @onclick="HideCreatePropertyModal">Cancel</button>
+                        <button type="submit" class="form-button form-button-submit" disabled="@isCreatingProperty">
+                            @(isCreatingProperty ? "Creating..." : "Create Property")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+
+    private List<PropertyDto>? properties;
+    private bool isLoading = false;
+    private int? currentAgentId = null;
+    private bool showCreateModal = false;
+    private bool isCreatingProperty = false;
+    private string createPropertyError = string.Empty;
+    private CreatePropertyDto createPropertyDto = new CreatePropertyDto { Title = string.Empty };
+    private string filterTitle = string.Empty;
+    private string filterAddress = string.Empty;
+    private string filterStatus = string.Empty;
+    private List<PropertyDto>? filteredProperties = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgentId();
+        await LoadProperties();
+    }
+
+    private async Task LoadAgentId()
+    {
+        try
+        {
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated == true)
+            {
+                var userIdClaim = authState.User.FindFirst("Id")?.Value;
+                if (int.TryParse(userIdClaim, out int agentId))
+                {
+                    currentAgentId = agentId;
+                }
+            }
+        }
+        catch
+        {
+            // Handle error silently
+        }
+    }
+
+    private async Task LoadProperties()
+    {
+        isLoading = true;
+        try
+        {
+            if (currentAgentId.HasValue)
+            {
+                properties = await PropertyService.GetByAgentAsync(currentAgentId.Value);
+                ApplyFilters();
+            }
+            else
+            {
+                properties = new List<PropertyDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            properties = new List<PropertyDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private void ApplyFilters()
+    {
+        if (properties == null)
+        {
+            filteredProperties = new List<PropertyDto>();
+            return;
+        }
+
+        filteredProperties = properties.Where(p =>
+            (string.IsNullOrWhiteSpace(filterTitle) ||
+             p.Title.Contains(filterTitle, StringComparison.OrdinalIgnoreCase)) &&
+
+            (string.IsNullOrWhiteSpace(filterAddress) ||
+             p.Address.Contains(filterAddress, StringComparison.OrdinalIgnoreCase)) &&
+
+            (string.IsNullOrWhiteSpace(filterStatus) ||
+             p.Status.ToString().Contains(filterStatus, StringComparison.OrdinalIgnoreCase))
+        ).ToList();
+    }
+
+    private void NavigateToProperty(int propertyId)
+    {
+        Navigation.NavigateTo($"/agent/property/{propertyId}");
+    }
+
+    private async Task ShowCreatePropertyModal()
+    {
+        if (currentAgentId.HasValue)
+        {
+            createPropertyDto = new CreatePropertyDto
+            {
+                AgentId = currentAgentId.Value,
+                Title = string.Empty,
+                Address = string.Empty,
+                StartingPrice = 0,
+                Bedrooms = 0,
+                Bathrooms = 0,
+                SizeInSquareMeters = 0,
+                Description = string.Empty
+            };
+            createPropertyError = string.Empty;
+            showCreateModal = true;
+        }
+        else
+        {
+            createPropertyError = "Unable to get agent ID. Please log in again.";
+        }
+    }
+    
+    private void HideCreatePropertyModal()
+    {
+        showCreateModal = false;
+        createPropertyError = string.Empty;
+        createPropertyDto = new CreatePropertyDto { Title = string.Empty };
+    }
+
+    private async Task HandleCreateProperty()
+    {
+        isCreatingProperty = true;
+        createPropertyError = string.Empty;
+
+        try
+        {
+            try
+            {
+                var uploadedUrls = await JS.InvokeAsync<List<string>>("multiUpload.uploadFiles",
+                    "propertyImagesInput", "https://localhost:7204/properties/upload");
+
+                if (uploadedUrls != null && uploadedUrls.Count > 0)
+                {
+                    createPropertyDto.ImageUrl = System.Text.Json.JsonSerializer.Serialize(uploadedUrls);
+                }
+            }
+            catch (Exception ex)
+            {
+                createPropertyError = "Image upload failed: " + ex.Message;
+                isCreatingProperty = false;
+                return;
+            }
+            await PropertyService.CreateAsync(createPropertyDto);
+            HideCreatePropertyModal();
+            await LoadProperties();
+        }
+        catch (Exception ex)
+        {
+            createPropertyError = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isCreatingProperty = false;
+        }
+    }
+}

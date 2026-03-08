@@ -1,9 +1,6 @@
 @page "/login"
 @namespace BlazorApp.Components.Pages
 @using BlazorApp.Auth
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Web
 @inject AuthenticationStateProvider AuthProvider
 @inject NavigationManager Navigation
 
@@ -91,11 +88,37 @@
                 return;
             }
 
-            Navigation.NavigateTo("/dashboard");
+            var authState = await AuthProvider.GetAuthenticationStateAsync();
+            var role = authState.User.FindFirst("RoleName")?.Value;
+
+            var route = role switch
+            {
+                "Agent" => "/agent-dashboard",
+                "Buyer" => "/buyer-dashboard",
+                "Admin" => "/admin-dashboard",
+                _ => "/buyer-dashboard"
+            };
+
+            Navigation.NavigateTo(route, true);
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message;
+            try
+            {
+                var errorJson = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(ex.Message);
+                if (errorJson.TryGetProperty("message", out var messageElement))
+                {
+                    errorMessage = messageElement.GetString() ?? ex.Message;
+                }
+                else
+                {
+                    errorMessage = ex.Message;
+                }
+            }
+            catch
+            {
+                errorMessage = ex.Message;
+            }
         }
         finally
         {

@@ -358,127 +358,381 @@ Content-Type: application/json
 ###
 
 ###############################################
-# PROPERTIES CONTROLLER – ZOMBIES (Create)
+# PAYMENT CONTROLLER
 ###############################################
 
-### Z — Zero/One: Zero bedrooms should fail
-POST {{WebAPI_HostAddress}}/properties
+### 41. POST - Validate Card (Valid Card Details - Should Succeed)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 1,
-  "Title": "Zero Bedroom Loft",
-  "Address": "0 Test St",
-  "StartingPrice": 250000,
-  "Bedrooms": 0,
-  "Bathrooms": 1,
-  "SizeInSquareFeet": 600,
-  "Description": "Should fail: zero bedrooms",
-  "Status": "Available"
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO"
 }
 
 ###
 
-## O — One happy-path property (baseline success later)
-POST {{WebAPI_HostAddress}}/properties
+### 42. POST - Validate Card (Invalid Card Number - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 1,
-  "Title": "Baseline Property",
-  "Address": "1 Success Ave",
-  "StartingPrice": 300000,
-  "Bedrooms": 2,
-  "Bathrooms": 2,
-  "SizeInSquareFeet": 1100,
-  "Description": "Should eventually succeed once CreateProperty is implemented"
-}
-
-### M — Many/simultaneous: second property with same agent/title (should handle duplicates)
-POST {{WebAPI_HostAddress}}/properties
-Content-Type: application/json
-
-{
-  "AgentId": 1,
-  "Title": "Baseline Property",
-  "Address": "Duplicate Title Rd",
-  "StartingPrice": 310000,
-  "Bedrooms": 3,
-  "Bathrooms": 2,
-  "SizeInSquareFeet": 1300,
-  "Description": "Should fail or surface duplicate-handling behavior",
-  "Status": "Available"
+    "cardNumber": "4000123456789999",
+    "expirationDate": "11/28",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO"
 }
 
 ###
 
-### B — Boundary: extremely high price
-POST {{WebAPI_HostAddress}}/properties
+### 43. POST - Validate Card (Invalid Expiration Date - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 1,
-  "Title": "Ultra Luxury Penthouse",
-  "Address": "999 Highline Blvd",
-  "StartingPrice": 999999999.99,
-  "Bedrooms": 6,
-  "Bathrooms": 5,
-  "SizeInSquareFeet": 8000,
-  "Description": "Boundary test for price magnitude",
-  "Status": "Available"
+    "cardNumber": "4000123456789010",
+    "expirationDate": "12/25",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO"
 }
 
 ###
 
-### I — Interface/Integration: invalid agent (should return gRPC NotFound)
-POST {{WebAPI_HostAddress}}/properties
+### 44. POST - Validate Card (Invalid CVC - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 999,
-  "Title": "Unknown Agent Listing",
-  "Address": "404 Mystery Ln",
-  "StartingPrice": 200000,
-  "Bedrooms": 2,
-  "Bathrooms": 1,
-  "SizeInSquareFeet": 900,
-  "Description": "Should fail: agent does not exist",
-  "Status": "Available"
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "cvc": "999",
+    "name": "FELIPE FIGUEIREDO"
 }
 
 ###
 
-### E — Error conditions: negative bathroom count
-POST {{WebAPI_HostAddress}}/properties
+### 45. POST - Validate Card (Invalid Name - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 1,
-  "Title": "Negative Bathroom Home",
-  "Address": "Error Blvd",
-  "StartingPrice": 220000,
-  "Bedrooms": 3,
-  "Bathrooms": -1,
-  "SizeInSquareFeet": 1200,
-  "Description": "Should fail: invalid bathroom value",
-  "Status": "Available"
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "cvc": "123",
+    "name": "JOHN DOE"
 }
 
 ###
 
-### S — Simple story: missing optional fields (address/description/status omitted)
-POST {{WebAPI_HostAddress}}/properties
+### 46. POST - Validate Card (Missing Card Number - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
 Content-Type: application/json
 
 {
-  "AgentId": 1,
-  "Title": "Minimal Payload Property",
-  "StartingPrice": 150000,
-  "Bedrooms": 1,
-  "Bathrooms": 1,
-  "SizeInSquareFeet": 500
+    "expirationDate": "11/28",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO"
 }
 
 ###
+
+### 47. POST - Validate Card (Missing Expiration Date - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
+Content-Type: application/json
+
+{
+    "cardNumber": "4000123456789010",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO"
+}
+
+###
+
+### 48. POST - Validate Card (Missing CVC - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
+Content-Type: application/json
+
+{
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "name": "FELIPE FIGUEIREDO"
+}
+
+###
+
+### 49. POST - Validate Card (Missing Name - Should Fail)
+POST {{WebAPI_HostAddress}}/payments/validate-card
+Content-Type: application/json
+
+{
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "cvc": "123"
+}
+
+###
+
+###############################################
+# payment with rabitmq 
+###############################################
+
+POST {{WebAPI_HostAddress}}/payments/validate-card
+Content-Type: application/json
+
+{
+    "cardNumber": "4000123456789010",
+    "expirationDate": "11/28",
+    "cvc": "123",
+    "name": "FELIPE FIGUEIREDO",
+    "propertyId": 4,
+    "bidId": 11,
+    "buyerId": 3,
+    "agentId": 1
+}
+###
+
+
+###############################################
+# NOTIFICATIONS CONTROLLER
+###############################################
+
+### 1. POST - Create Notification (Accepted Bid)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 1,
+    "BuyerId": 3,
+    "PropertyId": 1,
+    "Status": "Accepted",
+    "Message": "Your bid was accepted!",
+    "PropertyTitle": "Kamtjatka Student Apartment"
+}
+
+###
+
+### 2. POST - Create Notification (Rejected Bid)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 2,
+    "BuyerId": 4,
+    "PropertyId": 8,
+    "Status": "Rejected",
+    "Message": "Another bid was accepted.",
+    "PropertyTitle": "Studio, Aalborg"
+}
+
+###
+
+### 3. POST - Create Notification (Without PropertyTitle)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 3,
+    "BuyerId": 3,
+    "PropertyId": 1,
+    "Status": "Accepted",
+    "Message": "Congratulations! Your bid has been accepted."
+}
+
+###
+
+### 4. POST - Create Notification (Missing BidId - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BuyerId": 3,
+    "PropertyId": 1,
+    "Status": "Accepted",
+    "Message": "Missing BidId"
+}
+
+###
+
+### 5. POST - Create Notification (Missing BuyerId - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 4,
+    "PropertyId": 8,
+    "Status": "Rejected",
+    "Message": "Missing BuyerId"
+}
+
+###
+
+### 6. POST - Create Notification (Missing PropertyId - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 5,
+    "BuyerId": 4,
+    "Status": "Accepted",
+    "Message": "Missing PropertyId"
+}
+
+###
+
+### 7. POST - Create Notification (Missing Status - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 6,
+    "BuyerId": 3,
+    "PropertyId": 1,
+    "Message": "Missing Status"
+}
+
+###
+
+### 8. POST - Create Notification (Missing Message - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 7,
+    "BuyerId": 4,
+    "PropertyId": 8,
+    "Status": "Accepted"
+}
+
+###
+
+### 9. POST - Create Notification (Empty Status - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 8,
+    "BuyerId": 3,
+    "PropertyId": 1,
+    "Status": "",
+    "Message": "Empty status should fail"
+}
+
+###
+
+### 10. POST - Create Notification (Empty Message - Should Fail)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 9,
+    "BuyerId": 4,
+    "PropertyId": 8,
+    "Status": "Rejected",
+    "Message": ""
+}
+
+###
+
+### 11. GET - Get All Notifications
+GET {{WebAPI_HostAddress}}/notifications
+
+###
+
+### 12. GET - Get Notifications by BuyerId
+GET {{WebAPI_HostAddress}}/notifications?buyerId=3
+
+###
+
+### 13. GET - Get Unread Notifications for Buyer
+GET {{WebAPI_HostAddress}}/notifications?buyerId=3&isRead=false
+
+###
+
+### 14. GET - Get Read Notifications for Buyer
+GET {{WebAPI_HostAddress}}/notifications?buyerId=3&isRead=true
+
+###
+
+### 15. GET - Get All Unread Notifications
+GET {{WebAPI_HostAddress}}/notifications?isRead=false
+
+###
+
+### 16. GET - Get All Read Notifications
+GET {{WebAPI_HostAddress}}/notifications?isRead=true
+
+###
+
+### 17. GET - Get Single Notification (by ID)
+GET {{WebAPI_HostAddress}}/notifications/1
+
+###
+
+### 18. GET - Get Single Notification (Non-existent ID - Should Return 404)
+GET {{WebAPI_HostAddress}}/notifications/999
+
+###
+
+### 19. PUT - Mark Notification as Read
+PUT {{WebAPI_HostAddress}}/notifications/1/read
+
+###
+
+### 20. PUT - Mark Notification as Read (Non-existent ID - Should Return 404)
+PUT {{WebAPI_HostAddress}}/notifications/999/read
+
+###
+
+### 21. GET - Get Notifications for Buyer 4
+GET {{WebAPI_HostAddress}}/notifications?buyerId=4
+
+###
+
+### 22. GET - Get Notifications for Buyer 4 (Unread Only)
+GET {{WebAPI_HostAddress}}/notifications?buyerId=4&isRead=false
+
+###
+
+### 23. POST - Create Multiple Notifications (Test Data Setup)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 1,
+    "BuyerId": 3,
+    "PropertyId": 2,
+    "Status": "Accepted",
+    "Message": "Your bid of $515,000 was accepted!",
+    "PropertyTitle": "Kamtjatka Student Apartment"
+}
+
+###
+
+### 24. POST - Create Multiple Notifications (Test Data Setup)
+POST {{WebAPI_HostAddress}}/notifications
+Content-Type: application/json
+
+{
+    "BidId": 11,
+    "BuyerId": 4,
+    "PropertyId": 8,
+    "Status": "Rejected",
+    "Message": "Your bid was not selected. Another buyer's offer was accepted.",
+    "PropertyTitle": "High-Rise Apartment, Vejle"
+}
+
+###
+
+### 25. GET - Verify Created Notifications (After Creating Test Data)
+GET {{WebAPI_HostAddress}}/notifications
+
+###
+
+
+
+
+
 
 

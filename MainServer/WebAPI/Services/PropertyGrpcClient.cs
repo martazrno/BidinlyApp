@@ -26,13 +26,14 @@ namespace MainServer.WebAPI.Services
             client = new PropertyService.PropertyServiceClient(channel);
         }
 
-        public async Task<GetPropertiesResponse> GetPropertiesAsync(int? agentId = null, string? status = null)
+        public async Task<GetPropertiesResponse> GetPropertiesAsync(int? agentId = null, string? status = null, string? creationStatus = null)
         {
             try
             {
                 var request = new GetPropertiesRequest();
                 if (agentId.HasValue) request.AgentId = agentId.Value;
                 if (!string.IsNullOrWhiteSpace(status)) request.Status = status;
+                if (!string.IsNullOrWhiteSpace(creationStatus)) request.CreationStatus = creationStatus;
 
                 return await client.GetPropertiesAsync(request);
             }

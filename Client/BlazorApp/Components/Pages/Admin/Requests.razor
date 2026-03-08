@@ -1,0 +1,185 @@
+@page "/requests"
+@namespace BlazorApp.Components.Pages
+@using Shared.DTOs.Properties
+@attribute [Authorize]
+@inject HttpPropertyService PropertyService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<PageTitle>Requests - Bidinly</PageTitle>
+
+<div class="bids-background">
+    <img src="/assets/images/Table-Background.png" alt="Requests Background" />
+    <h1 class="bids-title">Property Requests</h1>
+</div>
+
+<div class="bids-content">
+    <div class="bids-container">
+        @if (isLoading)
+        {
+            <div class="loading">
+                <p>Loading requests...</p>
+            </div>
+        }
+        else if (pendingProperties.Any())
+        {
+            <div class="properties-container">
+                @foreach (var property in pendingProperties)
+                {
+                    <div class="property-card">
+                        <div class="card-image-placeholder">
+                            @if (!string.IsNullOrWhiteSpace(property.ImageUrl))
+                            {
+                                var imageUrl = property.ImageUrl;
+
+                                try
+                                {
+                                    var images = System.Text.Json.JsonSerializer
+                                        .Deserialize<List<string>>(property.ImageUrl);
+
+                                    if (images?.Any() == true)
+                                    {
+                                        imageUrl = images[0];
+                                    }
+                                }
+                                catch
+                                {
+                                    //
+                                }
+
+                                <img src="@imageUrl" alt="@property.Title" class="property-image" />
+                            }
+                            else
+                            {
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            }
+                        </div>
+                        <div class="card-details">
+                            <h3 class="card-title">@property.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(property.Address))
+                            {
+                                <p class="card-address">@property.Address</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(property.Description))
+                            {
+                                <p class="card-description">@property.Description</p>
+                            }
+                            <div class="card-info">
+                                <span class="info-item">@property.Bedrooms Bedrooms</span>
+                                <span class="info-item">@property.Bathrooms Bathrooms</span>
+                                <span class="info-item">@property.SizeInSquareMeters.ToString("F0") sq m</span>
+                                <span class="info-item">@property.StartingPrice.ToString("N0") Kr</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(property.AgentName))
+                            {
+                                <p class="card-agent">Agent: @property.AgentName</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(property.Status))
+                            {
+                                <p class="card-status">Status: @property.Status</p>
+                            }
+                            <p class="card-creation-status">Creation Status: <strong>@property.CreationStatus</strong></p>
+                        </div>
+                        <div class="card-actions">
+                            <button class="action-button approve-button" @onclick="() => HandleApprove(property.Id)" @onclick:stopPropagation="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Approve
+                            </button>
+                            <button class="action-button reject-button" @onclick="() => HandleReject(property.Id)" @onclick:stopPropagation="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="no-results">
+                <p>No pending property requests found.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<PropertyDto> pendingProperties = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPendingProperties();
+    }
+
+    private async Task LoadPendingProperties()
+    {
+        try
+        {
+            isLoading = true;
+            pendingProperties = await PropertyService.GetByCreationStatusAsync("Pending");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading pending properties: {ex.Message}");
+            pendingProperties = new List<PropertyDto>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleApprove(int propertyId)
+    {
+        try
+        {
+            var property = pendingProperties.FirstOrDefault(p => p.Id == propertyId);
+            if (property == null) return;
+
+            var updateDto = new UpdatePropertyDto
+            {
+                Id = propertyId,
+                AgentId = property.AgentId ?? 0,
+                CreationStatus = "Approved"
+            };
+
+            await PropertyService.UpdateAsync(updateDto);
+            await LoadPendingProperties();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error approving property: {ex.Message}");
+        }
+    }
+
+    private async Task HandleReject(int propertyId)
+    {
+        try
+        {
+            var property = pendingProperties.FirstOrDefault(p => p.Id == propertyId);
+            if (property == null) return;
+
+            var updateDto = new UpdatePropertyDto
+            {
+                Id = propertyId,
+                AgentId = property.AgentId ?? 0,
+                CreationStatus = "Rejected"
+            };
+
+            await PropertyService.UpdateAsync(updateDto);
+            await LoadPendingProperties();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rejecting property: {ex.Message}");
+        }
+    }
+}
+
